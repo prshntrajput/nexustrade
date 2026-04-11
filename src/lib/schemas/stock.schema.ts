@@ -12,7 +12,7 @@ export const QuoteSchema = z.object({
   price: z.number().positive(),
   change: z.number(),
   changePercent: z.number(),
-  volume: z.number().nonnegative(),
+  volume: z.number().nonnegative().optional(), // ← optional: not in /quote endpoint
   high: z.number().positive(),
   low: z.number().positive(),
   open: z.number().positive(),
@@ -43,7 +43,7 @@ export const StockTickSchema = z.object({
 });
 
 export const NewsItemSchema = z.object({
-  id: z.number().or(z.string()),
+  id: z.union([z.number(), z.string()]),
   headline: z.string(),
   summary: z.string().optional(),
   source: z.string(),
@@ -63,7 +63,6 @@ export const IndicatorsSchema = z.object({
   bbLower: z.number(),
 });
 
-// TypeScript types — all derived from Zod, ZERO manual types
 export type Symbol = z.infer<typeof SymbolSchema>;
 export type Quote = z.infer<typeof QuoteSchema>;
 export type Candle = z.infer<typeof CandleSchema>;
