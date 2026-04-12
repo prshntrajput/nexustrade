@@ -13,17 +13,13 @@ import { getFinnhubService } from '@/lib/services/finnhub.service';
 import { createSuccessResponse, createErrorResponse } from '@/lib/middleware/utils';
 import { ExternalApiError } from '@/lib/errors';
 
-// Valid resolutions supported by Finnhub
-const ResolutionSchema = z.enum(['1', '5', '15', '30', '60', 'D', 'W', 'M']);
-
 const CandlesQuerySchema = z.object({
   symbol: SymbolSchema,
-  resolution: ResolutionSchema.default('D'),
-  // from/to are Unix milliseconds — coerce from string URL param
+  resolution: z.enum(['1', '5', '15', '30', '60', 'D', 'W', 'M']).default('D'),
   from: z.coerce
     .number()
     .optional()
-    .default(() => Date.now() - 30 * 86_400_000), // default: last 30 days
+    .default(() => Date.now() - 30 * 86_400_000),
   to: z.coerce
     .number()
     .optional()
@@ -37,11 +33,9 @@ async function candlesHandler(
   ctx: RequestContext,
 ): Promise<Response> {
   const { symbol, resolution, from, to } = ctx.validatedData as CandlesQuery;
-
   if (from >= to) {
     return createErrorResponse('"from" must be earlier than "to"', 400);
   }
-
   try {
     const data = await getFinnhubService().getCandles(symbol, resolution, from, to);
     return createSuccessResponse(data);
@@ -53,10 +47,12 @@ async function candlesHandler(
   }
 }
 
-export const GET = compose(
-  withAuth,
-  withRateLimit({ service: 'finnhub', rpm: 55 }),
-  withValidation(CandlesQuerySchema),
-  withCache({ ttl: 60 }), // candle data cached for 60 seconds
-  candlesHandler,
-);
+export async function GET(request: NextRequest): Promise<Response> {
+  return compose(
+    withAuth,
+    withRateLimit({ service: 'finnhub', rpm: 55 }),
+    withValidation(CandlesQuerySchema),
+    withCache({ ttl: 60 }),
+    candlesHandler,
+  )(request);
+}

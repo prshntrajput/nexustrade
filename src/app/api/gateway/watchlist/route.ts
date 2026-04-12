@@ -17,11 +17,8 @@ async function getWatchlistHandler(
     const repo = getWatchlistRepository();
     const items = await repo.findByUserId(ctx.user!.id);
     return createSuccessResponse(items);
-  } catch (err) {
-    if (err instanceof DatabaseError) {
-      return createErrorResponse('Failed to fetch watchlist', 500);
-    }
-    return createErrorResponse('Unexpected server error', 500);
+  } catch {
+    return createErrorResponse('Failed to fetch watchlist', 500);
   }
 }
 
@@ -36,6 +33,15 @@ async function addToWatchlistHandler(
   try {
     const repo = getWatchlistRepository();
     const item = await repo.create(ctx.user!.id, data);
+
+    // T19 — Subscribe this symbol to the Finnhub WebSocket immediately
+    try {
+      const { WebSocketManager } = await import('@/lib/services/websocket.manager');
+      WebSocketManager.getInstance().addSymbol(item.symbol);
+    } catch {
+      // Non-fatal — WebSocket not available in all environments
+    }
+
     return createSuccessResponse(item, 201);
   } catch (err) {
     if (err instanceof ConflictError) {
@@ -50,15 +56,21 @@ async function addToWatchlistHandler(
 
 // ─── Route exports ────────────────────────────────────────────────────────────
 
-export const GET = compose(
-  withAuth,
-  withRateLimit({ service: 'database', rpm: 120 }),
-  getWatchlistHandler,
-);
+// Replace the bottom exports section only — keep all handlers above unchanged
 
-export const POST = compose(
-  withAuth,
-  withRateLimit({ service: 'database', rpm: 120 }),
-  withValidation(CreateWatchlistItemSchema),
-  addToWatchlistHandler,
-);
+export async function GET(request: NextRequest): Promise<Response> {
+  return compose(
+    withAuth,
+    withRateLimit({ service: 'database', rpm: 120 }),
+    getWatchlistHandler,
+  )(request);
+}
+
+export async function POST(request: NextRequest): Promise<Response> {
+  return compose(
+    withAuth,
+    withRateLimit({ service: 'database', rpm: 120 }),
+    withValidation(CreateWatchlistItemSchema),
+    addToWatchlistHandler,
+  )(request);
+}

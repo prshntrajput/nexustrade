@@ -11,7 +11,7 @@ const geist = Geist({
 export const metadata: Metadata = {
   title: 'NexusTrade — AI Stock Research Terminal',
   description:
-    'Real-time stock monitoring, technical indicators, and AI-powered analysis powered by Gemini.',
+    'Real-time stock monitoring, technical indicators, and AI-powered analysis.',
 };
 
 export default function RootLayout({
@@ -20,8 +20,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${geist.variable} font-sans antialiased`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      // ← Fixes "Detected scroll-behavior: smooth on <html> element" warning
+      data-scroll-behavior="smooth"
+    >
+      <body
+        className={`${geist.variable} font-sans antialiased`}
+        // ← Suppresses browser extension attribute injection (e.g. ColorZilla
+        //   adds cz-shortcut-listen="true" which causes hydration mismatch)
+        suppressHydrationWarning
+      >
         <Providers>{children}</Providers>
       </body>
     </html>
