@@ -1,23 +1,29 @@
-import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
-import Sidebar from '@/components/ui/Sidebar';
+import { Sidebar } from '@/components/layout/Sidebar';
+import { Header } from '@/components/layout/Header';
+import { Toaster } from '@/components/ui/Toaster';
 
-export default async function DashboardLayout({
+export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) redirect('/login');
-
   return (
-    <div className="min-h-screen bg-gray-950 flex">
-      <Sidebar userEmail={user.email ?? ''} />
-      <main className="flex-1 ml-64 p-6 overflow-auto">
-        {children}
-      </main>
-    </div>
+    <>
+      <div className="flex h-screen bg-gray-950 overflow-hidden">
+        {/* ── Sidebar (desktop sticky + mobile drawer) ── */}
+        <Sidebar />
+
+        {/* ── Main content area ── */}
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <Header />
+          <main className="flex-1 overflow-y-auto">
+            {children}
+          </main>
+        </div>
+      </div>
+
+      {/* ── T43 — Global toast notifications (Phase 8) ── */}
+      <Toaster />
+    </>
   );
 }

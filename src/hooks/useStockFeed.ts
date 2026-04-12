@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { StockTickSchema } from '@/lib/schemas/stock.schema';
 import type { StockTick } from '@/types';
@@ -15,6 +16,7 @@ interface UseStockFeedReturn {
  * T21 — Subscribes to per-symbol Supabase Realtime Broadcast channel.
  * Receives ticks broadcasted by the server-side WebSocket manager.
  * T23 — Re-subscribes on tab visibility change to recover dropped connections.
+ * T43 — Shows toast on disconnect and reconnect.
  */
 export function useStockFeed(symbol: string): UseStockFeedReturn {
   const [tick, setTick] = useState<StockTick | null>(null);
@@ -25,9 +27,17 @@ export function useStockFeed(symbol: string): UseStockFeedReturn {
   const symbolRef = useRef(symbol);
   symbolRef.current = symbol;
 
+  // Track whether we were previously connected so we can distinguish
+  // "initial connect" from "reconnect" for the toast message
+  const wasConnectedRef = useRef(false);
+
+  // Track whether we already showed a disconnect toast to avoid duplicates
+  // across rapid disconnect/reconnect cycles
+  const disconnectToastShownRef = useRef(false);
+
   const supabase = createClient();
 
-  // ─── Subscribe / resubscribe ────────────────────────────────────────────
+  // ─── Subscribe / resubscribe ──────────────────────────────────────────────
 
   const subscribe = useCallback(() => {
     // Clean up existing channel before creating a new one
@@ -49,13 +59,47 @@ export function useStockFeed(symbol: string): UseStockFeedReturn {
         },
       )
       .subscribe((status) => {
-        setIsConnected(status === 'SUBSCRIBED');
+        const connected = status === 'SUBSCRIBED';
+        setIsConnected(connected);
+
+        // ── T43 — Reconnect toast ─────────────────────────────────────────
+        if (connected) {
+          if (wasConnectedRef.current === false && disconnectToastShownRef.current) {
+            // Was disconnected before — this is a reconnect, show recovery toast
+            toast.success('Live feed reconnected', {
+              description: `Real-time prices restored for ${symbolRef.current}`,
+              duration: 3_000,
+              id: `ws-reconnect-${symbolRef.current}`, // dedupes rapid events
+            });
+          }
+          wasConnectedRef.current = true;
+          disconnectToastShownRef.current = false;
+        }
+
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          wasConnectedRef.current = false;
+
+          // Only show disconnect toast once per disconnection event
+          if (!disconnectToastShownRef.current) {
+            disconnectToastShownRef.current = true;
+            toast.warning('Live feed disconnected', {
+              description: 'Reconnecting automatically…',
+              duration: 4_000,
+              id: `ws-disconnect-${symbolRef.current}`, // dedupes rapid events
+            });
+          }
+        }
+
+        if (status === 'CLOSED') {
+          wasConnectedRef.current = false;
+          setIsConnected(false);
+        }
       });
 
     channelRef.current = channel;
   }, [supabase]); // supabase is stable (singleton) — safe dependency
 
-  // ─── Initial subscription ───────────────────────────────────────────────
+  // ─── Initial subscription ─────────────────────────────────────────────────
 
   useEffect(() => {
     subscribe();
@@ -66,10 +110,13 @@ export function useStockFeed(symbol: string): UseStockFeedReturn {
         channelRef.current = null;
       }
       setIsConnected(false);
+      // Reset state on unmount so next mount starts fresh
+      wasConnectedRef.current = false;
+      disconnectToastShownRef.current = false;
     };
   }, [symbol, subscribe, supabase]);
 
-  // ─── T23 — visibilitychange: resubscribe when tab comes back to focus ───
+  // ─── T23 — visibilitychange: resubscribe when tab comes back to focus ────
 
   useEffect(() => {
     const handleVisibility = () => {

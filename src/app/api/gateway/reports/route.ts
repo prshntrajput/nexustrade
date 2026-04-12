@@ -14,11 +14,14 @@ import {
 } from '@/lib/middleware/utils';
 import { getReportRepository } from '@/lib/repositories/report.repository';
 
-// ─── GET — list reports (optional symbol filter) ──────────────────────────────
+// ─── GET ──────────────────────────────────────────────────────────────────────
 
 const ReportsQuerySchema = z.object({
   symbol: SymbolSchema.optional(),
-  limit: z.coerce.number().int().min(1).max(50).default(20),
+  sentiment: z.enum(['BULLISH', 'BEARISH', 'NEUTRAL']).optional(),
+  trigger: z.enum(['alert', 'manual', 'scheduled']).optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(10),
+  offset: z.coerce.number().int().min(0).default(0),
 });
 
 type ReportsQuery = z.infer<typeof ReportsQuerySchema>;
@@ -27,11 +30,17 @@ async function getReportsHandler(
   _request: NextRequest,
   ctx: RequestContext,
 ): Promise<Response> {
-  const { symbol, limit } = ctx.validatedData as ReportsQuery;
+  const { symbol, sentiment, trigger, limit, offset } =
+    ctx.validatedData as ReportsQuery;
 
   try {
-    const repo = getReportRepository();
-    const reports = await repo.findByUserId(ctx.user!.id, { symbol, limit });
+    const reports = await getReportRepository().findByUserId(ctx.user!.id, {
+      symbol,
+      sentiment,
+      trigger,
+      limit,
+      offset,
+    });
     return createSuccessResponse(reports);
   } catch (err) {
     console.error('[GET /reports]', err);
@@ -39,16 +48,17 @@ async function getReportsHandler(
   }
 }
 
-// ─── DELETE — delete a single report ─────────────────────────────────────────
+// ─── DELETE ───────────────────────────────────────────────────────────────────
+
+const DeleteQuerySchema = z.object({
+  id: z.string().uuid('Invalid report ID'),
+});
 
 async function deleteReportHandler(
-  request: NextRequest,
+  _request: NextRequest,
   ctx: RequestContext,
 ): Promise<Response> {
-  const url = new URL(request.url);
-  const id = url.searchParams.get('id');
-
-  if (!id) return createErrorResponse('Missing report id', 400);
+  const { id } = ctx.validatedData as { id: string };
 
   try {
     await getReportRepository().deleteById(ctx.user!.id, id);
@@ -59,7 +69,7 @@ async function deleteReportHandler(
   }
 }
 
-// ─── Route exports ────────────────────────────────────────────────────────────
+// ─── Exports ──────────────────────────────────────────────────────────────────
 
 export async function GET(request: NextRequest): Promise<Response> {
   return compose(
@@ -74,6 +84,7 @@ export async function DELETE(request: NextRequest): Promise<Response> {
   return compose(
     withAuth,
     withRateLimit({ service: 'database', rpm: 30 }),
+    withValidation(DeleteQuerySchema),
     deleteReportHandler,
   )(request);
 }

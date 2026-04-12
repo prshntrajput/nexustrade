@@ -6,11 +6,15 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-  ShieldAlert,
+  AlertTriangle,
   Lightbulb,
   BarChart2,
-  Activity,
+  Zap,
+  User,
+  Calendar,
+  Clock,
 } from 'lucide-react';
+import { formatDistanceToNow, format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { Report } from '@/types';
 
@@ -19,99 +23,20 @@ interface ReportDetailProps {
   onClose: () => void;
 }
 
-const sentimentConfig = {
-  BULLISH: {
-    label: 'Bullish',
-    icon: TrendingUp,
-    classes: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
-  },
-  BEARISH: {
-    label: 'Bearish',
-    icon: TrendingDown,
-    classes: 'bg-red-500/10 text-red-400 border border-red-500/20',
-  },
-  NEUTRAL: {
-    label: 'Neutral',
-    icon: Minus,
-    classes: 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20',
-  },
+const sentimentMap = {
+  BULLISH: { label: 'Bullish', icon: TrendingUp, color: 'text-emerald-400', bg: 'bg-emerald-500/15 border-emerald-500/20' },
+  BEARISH: { label: 'Bearish', icon: TrendingDown, color: 'text-red-400', bg: 'bg-red-500/15 border-red-500/20' },
+  NEUTRAL: { label: 'Neutral', icon: Minus, color: 'text-gray-400', bg: 'bg-gray-500/15 border-gray-500/20' },
 } as const;
 
-function RSIGauge({ value }: { value: number }) {
-  const clamped = Math.min(100, Math.max(0, value));
-  const pct = clamped;
-  const label =
-    value > 70 ? 'Overbought' : value < 30 ? 'Oversold' : 'Neutral';
-  const color =
-    value > 70
-      ? 'bg-red-500'
-      : value < 30
-        ? 'bg-emerald-500'
-        : 'bg-yellow-500';
-
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-gray-500">RSI(14)</span>
-        <span
-          className={cn(
-            'font-bold',
-            value > 70
-              ? 'text-red-400'
-              : value < 30
-                ? 'text-emerald-400'
-                : 'text-yellow-500',
-          )}
-        >
-          {value.toFixed(2)} — {label}
-        </span>
-      </div>
-      <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
-        <div
-          className={cn('h-full rounded-full transition-all', color)}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <div className="flex justify-between text-[10px] text-gray-700">
-        <span>0 (Oversold)</span>
-        <span>30</span>
-        <span>70</span>
-        <span>100 (Overbought)</span>
-      </div>
-    </div>
-  );
-}
-
-function IndicatorRow({
-  label,
-  value,
-  positive,
-}: {
-  label: string;
-  value: string;
-  positive?: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0">
-      <span className="text-gray-500 text-sm">{label}</span>
-      <span
-        className={cn(
-          'text-sm font-mono font-medium',
-          positive === undefined
-            ? 'text-white'
-            : positive
-              ? 'text-emerald-400'
-              : 'text-red-400',
-        )}
-      >
-        {value}
-      </span>
-    </div>
-  );
-}
+const triggerMap = {
+  alert: { label: 'Alert triggered', icon: Zap },
+  manual: { label: 'Manual analysis', icon: User },
+  scheduled: { label: 'Scheduled digest', icon: Calendar },
+} as const;
 
 export function ReportDetail({ report, onClose }: ReportDetailProps) {
-  // Close on Escape key
+  // Escape key closes the panel
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -120,189 +45,176 @@ export function ReportDetail({ report, onClose }: ReportDetailProps) {
     return () => document.removeEventListener('keydown', handler);
   }, [onClose]);
 
-  // Prevent body scroll when panel is open
+  // Prevent body scroll when open
   useEffect(() => {
-    if (report) document.body.style.overflow = 'hidden';
-    else document.body.style.overflow = '';
+    if (report) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
     return () => { document.body.style.overflow = ''; };
   }, [report]);
 
   if (!report) return null;
 
-  const sentiment = sentimentConfig[report.sentiment];
+  const sentiment = sentimentMap[report.sentiment];
+  const trigger = triggerMap[report.trigger];
+  const SentimentIcon = sentiment.icon;
+  const TriggerIcon = trigger.icon;
+  const hasIndicators = report.indicators && report.indicators.rsi14 !== 0;
 
   return (
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+        className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
         onClick={onClose}
-        aria-hidden
+        aria-hidden="true"
       />
 
-      {/* Slide-in panel */}
+      {/* Slide-over panel */}
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={`${report.symbol} Analysis Report`}
-        className={cn(
-          'fixed right-0 top-0 bottom-0 z-50',
-          'w-full max-w-[600px]',
-          'bg-gray-950 border-l border-gray-800',
-          'overflow-y-auto',
-          'animate-in slide-in-from-right duration-300',
-        )}
+        aria-label={`AI Report: ${report.symbol}`}
+        className="fixed inset-y-0 right-0 z-50 w-full max-w-lg flex flex-col bg-gray-950 border-l border-gray-800 shadow-2xl overflow-hidden"
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-gray-950/95 backdrop-blur border-b border-gray-800 px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-800 shrink-0">
           <div className="flex items-center gap-3">
-            <span className="font-bold text-white text-lg">{report.symbol}</span>
+            <span className="text-xl font-bold text-white tracking-wide">
+              {report.symbol}
+            </span>
             <span
               className={cn(
-                'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold',
-                sentiment.classes,
+                'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold',
+                sentiment.bg,
+                sentiment.color,
               )}
             >
-              <sentiment.icon size={12} strokeWidth={2.5} />
-              {sentiment.label}
+              <SentimentIcon size={11} />
+              {sentiment.label.toUpperCase()}
             </span>
           </div>
           <button
             onClick={onClose}
             aria-label="Close report"
-            className="w-8 h-8 rounded-lg bg-gray-800 hover:bg-gray-700 flex items-center justify-center text-gray-400 hover:text-white transition-all"
+            className="p-2 rounded-lg hover:bg-gray-800 text-gray-500 hover:text-white transition-all"
           >
-            <X size={15} />
+            <X size={18} />
           </button>
         </div>
 
-        <div className="px-6 py-6 space-y-7">
+        {/* Meta */}
+        <div className="flex items-center gap-4 px-6 py-3 border-b border-gray-800 bg-gray-900/50 shrink-0">
+          <span className="flex items-center gap-1.5 text-xs text-gray-600">
+            <TriggerIcon size={11} />
+            {trigger.label}
+          </span>
+          <span className="flex items-center gap-1.5 text-xs text-gray-600">
+            <Clock size={11} />
+            {formatDistanceToNow(new Date(report.createdAt), { addSuffix: true })}
+          </span>
+          <span className="text-xs text-gray-700 ml-auto">
+            {format(new Date(report.createdAt), 'MMM d, yyyy HH:mm')}
+          </span>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+
           {/* Summary */}
-          <section>
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+          <div>
+            <h3 className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">
               Summary
             </h3>
-            <p className="text-gray-300 text-sm leading-relaxed">
+            <p className="text-gray-200 text-sm leading-relaxed">
               {report.summary}
             </p>
-          </section>
-
-          {/* Technical Outlook */}
-          <section>
-            <div className="flex items-center gap-2 mb-2">
-              <Activity size={13} className="text-gray-600" />
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Technical Outlook
-              </h3>
-            </div>
-            <p className="text-gray-300 text-sm leading-relaxed bg-gray-900 rounded-xl p-4 border border-gray-800">
-              {report.technicalOutlook}
-            </p>
-          </section>
-
-          {/* Indicators */}
-          <section>
-            <div className="flex items-center gap-2 mb-3">
-              <BarChart2 size={13} className="text-gray-600" />
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Indicators
-              </h3>
-            </div>
-
-            <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 space-y-5">
-              {/* RSI Gauge */}
-              <RSIGauge value={report.indicators.rsi14} />
-
-              {/* MACD + BB values */}
-              <div className="space-y-0">
-                <IndicatorRow
-                  label="MACD"
-                  value={report.indicators.macd.toFixed(4)}
-                  positive={report.indicators.macd > 0}
-                />
-                <IndicatorRow
-                  label="Signal"
-                  value={report.indicators.signal.toFixed(4)}
-                />
-                <IndicatorRow
-                  label="Histogram"
-                  value={report.indicators.histogram.toFixed(4)}
-                  positive={report.indicators.histogram > 0}
-                />
-                <IndicatorRow
-                  label="BB Upper"
-                  value={`$${report.indicators.bbUpper.toFixed(2)}`}
-                />
-                <IndicatorRow
-                  label="BB Middle (SMA 20)"
-                  value={`$${report.indicators.bbMiddle.toFixed(2)}`}
-                />
-                <IndicatorRow
-                  label="BB Lower"
-                  value={`$${report.indicators.bbLower.toFixed(2)}`}
-                />
-              </div>
-            </div>
-          </section>
+          </div>
 
           {/* Key Risks */}
           {report.keyRisks.length > 0 && (
-            <section>
+            <div>
               <div className="flex items-center gap-2 mb-3">
-                <ShieldAlert size={13} className="text-red-500/70" />
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <AlertTriangle size={13} className="text-red-400" />
+                <h3 className="text-gray-400 text-xs font-semibold uppercase tracking-wider">
                   Key Risks
                 </h3>
               </div>
-              <ul className="space-y-2">
+              <ul className="space-y-2.5">
                 {report.keyRisks.map((risk, i) => (
-                  <li
-                    key={i}
-                    className="flex items-start gap-2.5 text-sm text-gray-400"
-                  >
-                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-red-500/60 flex-shrink-0" />
+                  <li key={i} className="flex items-start gap-2.5 text-sm text-gray-300">
+                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-red-500/60 shrink-0" />
                     {risk}
                   </li>
                 ))}
               </ul>
-            </section>
+            </div>
           )}
 
           {/* Key Opportunities */}
           {report.keyOpportunities.length > 0 && (
-            <section>
+            <div>
               <div className="flex items-center gap-2 mb-3">
-                <Lightbulb size={13} className="text-emerald-500/70" />
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Key Opportunities
+                <Lightbulb size={13} className="text-emerald-400" />
+                <h3 className="text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                  Opportunities
                 </h3>
               </div>
-              <ul className="space-y-2">
+              <ul className="space-y-2.5">
                 {report.keyOpportunities.map((opp, i) => (
-                  <li
-                    key={i}
-                    className="flex items-start gap-2.5 text-sm text-gray-400"
-                  >
-                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500/60 flex-shrink-0" />
+                  <li key={i} className="flex items-start gap-2.5 text-sm text-gray-300">
+                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500/60 shrink-0" />
                     {opp}
                   </li>
                 ))}
               </ul>
-            </section>
+            </div>
           )}
 
-          {/* Metadata */}
-          <div className="text-xs text-gray-700 pt-2 border-t border-gray-800 space-y-1">
-            <p>Trigger: {report.trigger}</p>
-            <p>
-              Generated:{' '}
-              {new Date(report.createdAt).toLocaleString('en-IN', {
-                dateStyle: 'full',
-                timeStyle: 'short',
-              })}
+          {/* Technical Outlook */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <BarChart2 size={13} className="text-blue-400" />
+              <h3 className="text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                Technical Outlook
+              </h3>
+            </div>
+            <p className="text-gray-300 text-sm leading-relaxed">
+              {report.technicalOutlook}
             </p>
-            {report.alertId && <p>Alert ID: {report.alertId}</p>}
           </div>
+
+          {/* Indicators at time of analysis */}
+          {hasIndicators && (
+            <div>
+              <h3 className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">
+                Indicators at Analysis Time
+              </h3>
+              <div className="bg-gray-900 rounded-xl px-4 py-1 border border-gray-800">
+                {[
+                  { label: 'RSI (14)', value: report.indicators.rsi14 },
+                  { label: 'MACD', value: report.indicators.macd },
+                  { label: 'Signal', value: report.indicators.signal },
+                  { label: 'Histogram', value: report.indicators.histogram },
+                  { label: 'BB Upper', value: report.indicators.bbUpper },
+                  { label: 'BB Middle', value: report.indicators.bbMiddle },
+                  { label: 'BB Lower', value: report.indicators.bbLower },
+                ].map(({ label, value }) => (
+                  <div
+                    key={label}
+                    className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0"
+                  >
+                    <span className="text-gray-600 text-xs">{label}</span>
+                    <span className="text-white text-xs font-semibold tabular-nums">
+                      {typeof value === 'number' ? value.toFixed(4) : '—'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>
