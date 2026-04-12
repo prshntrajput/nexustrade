@@ -36,12 +36,10 @@ export class ValidationError extends Error {
   }
 }
 
-// ─── NEW in Phase 3 ──────────────────────────────────────────────────────────
-
 export class DatabaseError extends Error {
   constructor(
     message: string,
-    public readonly cause?: unknown,
+    public readonly details?: unknown,
   ) {
     super(message);
     this.name = 'DatabaseError';
