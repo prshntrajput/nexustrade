@@ -6,6 +6,7 @@ import { createSuccessResponse, createErrorResponse } from '@/lib/middleware/uti
 import { getWatchlistRepository } from '@/lib/repositories/watchlist.repository';
 import { CreateWatchlistItemSchema } from '@/lib/schemas/watchlist.schema';
 import { DatabaseError, ConflictError } from '@/lib/errors';
+import { ZodAny } from 'zod';
 
 // ─── GET /api/gateway/watchlist ───────────────────────────────────────────────
 

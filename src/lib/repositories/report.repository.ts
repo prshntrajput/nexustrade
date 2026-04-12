@@ -1,24 +1,13 @@
 import { getAdminClient } from '@/lib/supabase/admin';
-import { DatabaseError, NotFoundError } from '@/lib/errors';
-import type { Report, Indicators } from '@/types';
+import { DatabaseError } from '@/lib/errors';
+import type { Report } from '@/types';
 
-// Raw DB row shape (snake_case)
-interface ReportRow {
-  id: string;
-  user_id: string;
-  symbol: string;
-  alert_id: string | null;
-  trigger: 'alert' | 'manual' | 'scheduled';
-  summary: string;
-  sentiment: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
-  key_risks: string[];
-  key_opportunities: string[];
-  technical_outlook: string;
-  indicators: Indicators;
-  created_at: string;
+interface FindOptions {
+  symbol?: string;
+  limit?: number;
 }
 
-interface CreateReportData {
+interface CreateReportPayload {
   symbol: string;
   alertId: string | null;
   trigger: 'alert' | 'manual' | 'scheduled';
@@ -27,98 +16,92 @@ interface CreateReportData {
   keyRisks: string[];
   keyOpportunities: string[];
   technicalOutlook: string;
-  indicators: Indicators;
+  indicators: Record<string, number>;
 }
 
-function mapRow(row: ReportRow): Report {
+function mapRow(row: Record<string, unknown>): Report {
   return {
-    id: row.id,
-    userId: row.user_id,
-    symbol: row.symbol.toUpperCase(),
-    alertId: row.alert_id,
-    trigger: row.trigger,
-    summary: row.summary,
-    sentiment: row.sentiment,
-    keyRisks: row.key_risks,
-    keyOpportunities: row.key_opportunities,
-    technicalOutlook: row.technical_outlook,
-    indicators: row.indicators,
-    createdAt: row.created_at,
+    id: row.id as string,
+    userId: row.user_id as string,
+    symbol: row.symbol as string,
+    alertId: (row.alert_id as string | null) ?? null,
+    trigger: row.trigger as Report['trigger'],
+    summary: row.summary as string,
+    sentiment: row.sentiment as Report['sentiment'],
+    keyRisks: (row.key_risks as string[]) ?? [],
+    keyOpportunities: (row.key_opportunities as string[]) ?? [],
+    technicalOutlook: row.technical_outlook as string,
+    indicators: row.indicators as Report['indicators'],
+    createdAt: row.created_at as string,
   };
 }
 
-const SELECT_FIELDS = `
-  id, user_id, symbol, alert_id, trigger, summary, sentiment,
-  key_risks, key_opportunities, technical_outlook, indicators, created_at
-`;
+export class ReportRepository {
+  async findByUserId(
+    userId: string,
+    options: FindOptions = {},
+  ): Promise<Report[]> {
+    const supabase = getAdminClient();
 
-export class SupabaseReportRepository {
-  private get db() {
-    return getAdminClient();
-  }
-
-  async findByUserId(userId: string, limit = 50): Promise<Report[]> {
-    const { data, error } = await this.db
+    let query = supabase
       .from('reports')
-      .select(SELECT_FIELDS)
+      .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
-      .limit(limit);
+      .limit(options.limit ?? 20);
 
-    if (error) throw new DatabaseError('Failed to fetch reports', error);
-    return (data ?? []).map((row) => mapRow(row as ReportRow));
+    if (options.symbol) {
+      query = query.eq('symbol', options.symbol);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new DatabaseError(error.message);
+
+    return (data ?? []).map(mapRow);
   }
 
-  async findById(id: string, userId: string): Promise<Report | null> {
-    const { data, error } = await this.db
-      .from('reports')
-      .select(SELECT_FIELDS)
-      .eq('id', id)
-      .eq('user_id', userId)
-      .single();
+  async create(
+    userId: string,
+    payload: CreateReportPayload,
+  ): Promise<Report> {
+    const supabase = getAdminClient();
 
-    if (error?.code === 'PGRST116') return null;
-    if (error) throw new DatabaseError('Failed to fetch report', error);
-    return data ? mapRow(data as ReportRow) : null;
-  }
-
-  async create(userId: string, data: CreateReportData): Promise<Report> {
-    const { data: row, error } = await this.db
+    const { data, error } = await supabase
       .from('reports')
       .insert({
         user_id: userId,
-        symbol: data.symbol.toUpperCase(),
-        alert_id: data.alertId ?? null,
-        trigger: data.trigger,
-        summary: data.summary,
-        sentiment: data.sentiment,
-        key_risks: data.keyRisks,
-        key_opportunities: data.keyOpportunities,
-        technical_outlook: data.technicalOutlook,
-        indicators: data.indicators,
+        symbol: payload.symbol,
+        alert_id: payload.alertId,
+        trigger: payload.trigger,
+        summary: payload.summary,
+        sentiment: payload.sentiment,
+        key_risks: payload.keyRisks,
+        key_opportunities: payload.keyOpportunities,
+        technical_outlook: payload.technicalOutlook,
+        indicators: payload.indicators,
       })
-      .select(SELECT_FIELDS)
+      .select()
       .single();
 
-    if (error) throw new DatabaseError('Failed to save report', error);
-    return mapRow(row as ReportRow);
+    if (error) throw new DatabaseError(error.message);
+    return mapRow(data as Record<string, unknown>);
   }
 
-  async delete(id: string, userId: string): Promise<void> {
-    const { error, count } = await this.db
+  async deleteById(userId: string, reportId: string): Promise<void> {
+    const supabase = getAdminClient();
+
+    const { error } = await supabase
       .from('reports')
-      .delete({ count: 'exact' })
-      .eq('id', id)
+      .delete()
+      .eq('id', reportId)
       .eq('user_id', userId);
 
-    if (error) throw new DatabaseError('Failed to delete report', error);
-    if ((count ?? 0) === 0) throw new NotFoundError('Report');
+    if (error) throw new DatabaseError(error.message);
   }
 }
 
-let _reportRepo: SupabaseReportRepository | null = null;
-
-export function getReportRepository(): SupabaseReportRepository {
-  if (!_reportRepo) _reportRepo = new SupabaseReportRepository();
-  return _reportRepo;
+let _repo: ReportRepository | null = null;
+export function getReportRepository(): ReportRepository {
+  if (!_repo) _repo = new ReportRepository();
+  return _repo;
 }
