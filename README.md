@@ -13,9 +13,6 @@ A full-stack AI stock research terminal built with Next.js, Supabase, and Gemini
 - [Architecture](#architecture)
 - [Getting Started](#getting-started)
 - [Environment Variables](#environment-variables)
-- [Database Setup](#database-setup)
-- [Running Locally](#running-locally)
-- [Deployment](#deployment)
 
 ---
 
@@ -95,7 +92,11 @@ The goal is a fast, responsive, keyboard-navigable interface that works well on 
 
 ---
 
-**SETUP ENV**
+## Environment Variables
+
+Create a `.env.local` file in the project root and populate it with the following keys:
+
+```env
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
@@ -113,6 +114,7 @@ INNGEST_SIGNING_KEY=your-inngest-signing-key
 
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+
 
 
 
