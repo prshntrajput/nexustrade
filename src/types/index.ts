@@ -21,3 +21,5 @@ export type {
   WatchlistItem,
   CreateWatchlistItem,
 } from '@/lib/schemas/watchlist.schema';
+
+export type { Report, AnalyzeRequest } from '@/lib/schemas/report.schema';

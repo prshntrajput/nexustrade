@@ -1,76 +1,83 @@
 'use client';
 
 import useSWR from 'swr';
+import { useState } from 'react';
 import type { WatchlistItem } from '@/types';
 
-export const WATCHLIST_KEY = '/api/gateway/watchlist';
+const fetcher = async (url: string): Promise<WatchlistItem[]> => {
+  const res = await fetch(url, { credentials: 'include' });
+  if (!res.ok) {
+    const json = (await res.json()) as { error?: { message?: string } };
+    throw new Error(json.error?.message ?? `${res.status} ${res.statusText}`);
+  }
+  const json = (await res.json()) as {
+    success: boolean;
+    data: WatchlistItem[];
+  };
+  return json.data;
+};
 
-export function useWatchlist() {
-  const { data, error, isLoading, mutate } = useSWR<WatchlistItem[]>(WATCHLIST_KEY);
+export interface UseWatchlistReturn {
+  // Primary interface — matches WatchlistContent.tsx
+  watchlist: WatchlistItem[];
+  isLoading: boolean;
+  isError: boolean;
+  errorMessage: string | null;
+  addSymbol: (symbol: string, notes?: string) => Promise<void>;
+  removeSymbol: (id: string) => Promise<void>;
+  // Aliases — used by AlertsView and ReportsView
+  items: WatchlistItem[];
+  mutate: () => void;
+}
 
-  // ─── Add symbol — optimistic update ─────────────────────────────────────
+export function useWatchlist(): UseWatchlistReturn {
+  const [adding, setAdding] = useState(false);
 
-  const addSymbol = async (symbol: string, notes?: string): Promise<void> => {
-    const upper = symbol.toUpperCase();
+  const { data, isLoading, error, mutate } = useSWR<WatchlistItem[]>(
+    '/api/gateway/watchlist',
+    fetcher,
+    {
+      revalidateOnFocus: true,
+      revalidateOnMount: true,
+      dedupingInterval: 2_000,
+    },
+  );
 
-    // Optimistic placeholder inserted immediately
-    const optimistic: WatchlistItem = {
-      id: `optimistic-${Date.now()}`,
-      userId: '',
-      symbol: upper,
-      addedAt: new Date().toISOString(),
-      notes: notes ?? null,
-    };
+  const watchlist = data ?? [];
 
-    await mutate(
-      async () => {
-        const res = await fetch(WATCHLIST_KEY, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ symbol: upper, notes }),
-        });
-
-        if (!res.ok) {
-          const json = (await res.json().catch(() => ({}))) as {
-            error?: { message?: string };
-          };
-          throw new Error(json.error?.message ?? 'Failed to add symbol');
-        }
-
-        const json = (await res.json()) as { data: WatchlistItem };
-        // Replace optimistic placeholder with real server data
-        return [...(data ?? []), json.data];
-      },
-      {
-        optimisticData: [...(data ?? []), optimistic],
-        rollbackOnError: true,
-        revalidate: true,
-      },
-    );
+  const addSymbol = async (symbol: string, notes = ''): Promise<void> => {
+    if (adding) return;
+    setAdding(true);
+    try {
+      const res = await fetch('/api/gateway/watchlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ symbol: symbol.toUpperCase(), notes }),
+      });
+      if (!res.ok) {
+        const json = (await res.json()) as { error?: { message?: string } };
+        throw new Error(json.error?.message ?? 'Failed to add symbol');
+      }
+      await mutate();
+    } finally {
+      setAdding(false);
+    }
   };
 
-  // ─── Remove symbol — optimistic update ──────────────────────────────────
-
   const removeSymbol = async (id: string): Promise<void> => {
-    const afterRemoval = (data ?? []).filter((item) => item.id !== id);
-
     await mutate(
-      async () => {
+      async (current = []) => {
         const res = await fetch(`/api/gateway/watchlist/${id}`, {
           method: 'DELETE',
+          credentials: 'include',
         });
-
-        if (!res.ok) {
-          const json = (await res.json().catch(() => ({}))) as {
-            error?: { message?: string };
-          };
-          throw new Error(json.error?.message ?? 'Failed to remove symbol');
-        }
-
-        return afterRemoval;
+        if (!res.ok) throw new Error('Failed to remove symbol');
+        return current.filter((item) => item.id !== id);
       },
       {
-        optimisticData: afterRemoval,
+        optimisticData: (current = []) =>
+          current.filter((item) => item.id !== id),
         rollbackOnError: true,
         revalidate: false,
       },
@@ -78,11 +85,15 @@ export function useWatchlist() {
   };
 
   return {
-    watchlist: data ?? [],
+    // Primary interface
+    watchlist,
     isLoading,
-    isError: Boolean(error),
+    isError: !!error,
     errorMessage: error instanceof Error ? error.message : null,
     addSymbol,
     removeSymbol,
+    // Aliases for other components that use items/removeItem
+    items: watchlist,
+    mutate,
   };
 }

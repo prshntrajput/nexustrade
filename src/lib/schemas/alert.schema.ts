@@ -50,15 +50,15 @@ export const AlertSchema = z.object({
   createdAt: z.string(),
 });
 
-// Returned by GET — includes symbol from watchlist join
 export const AlertWithSymbolSchema = AlertSchema.extend({
   symbol: SymbolSchema,
 });
 
+// alertId is now optional — manual/scheduled triggers have no associated alert
 export const AlertFiredEventSchema = z.object({
   userId: z.string().uuid(),
   symbol: SymbolSchema,
-  alertId: z.string().uuid(),
+  alertId: z.string().uuid().optional(),
   trigger: z.enum(['alert', 'manual', 'scheduled']),
   conditionType: z.string(),
   firedAt: z.number(),

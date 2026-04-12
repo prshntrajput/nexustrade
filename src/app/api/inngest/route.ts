@@ -1,11 +1,13 @@
 import { serve } from 'inngest/next';
 import { inngest } from '@/inngest/client';
+import { analyzeStock } from '@/inngest/functions';
 
-// Phase 6 registers functions here — for now just mount the endpoint
-// so Inngest can discover the app and receive events
+// Allow long-running Inngest workflows (Gemini + multi-step can take ~30s)
+export const maxDuration = 300;
+
 const handler = serve({
   client: inngest,
-  functions: [], // Phase 6 fills this
+  functions: [analyzeStock],
 });
 
 export const GET = handler.GET;

@@ -20,8 +20,8 @@ function EmptyState() {
       </div>
       <h3 className="text-white font-semibold text-[15px] mb-1.5">No alerts yet</h3>
       <p className="text-gray-600 text-sm max-w-[240px] leading-relaxed">
-        Create your first alert using the form to get notified when conditions are
-        triggered.
+        Create your first alert using the form to get notified when conditions
+        are triggered.
       </p>
     </div>
   );
@@ -29,7 +29,12 @@ function EmptyState() {
 
 export function AlertsView() {
   const { alerts, isLoading, toggleAlert, deleteAlert, mutate } = useAlerts();
- const { items: watchlistItems = [], isLoading: watchlistLoading } = useWatchlist();
+
+  // ← isLoading flag pulled out so we can pass it to AlertBuilder
+  const {
+    items: watchlistItems = [],
+    isLoading: watchlistLoading,
+  } = useWatchlist();
 
   const activeAlerts = alerts.filter((a) => a.isActive);
   const pausedAlerts = alerts.filter((a) => !a.isActive);
@@ -57,10 +62,10 @@ export function AlertsView() {
           )}
         </div>
 
-        {/* Two-column layout: builder left, list right */}
         <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-6 items-start">
-          {/* Left — Alert builder (sticky on desktop) */}
+          {/* Left — Alert builder */}
           <div className="lg:sticky lg:top-6">
+            {/* ← Show skeleton while watchlist is loading instead of empty message */}
             {watchlistLoading ? (
               <div className="h-[460px] bg-gray-900 border border-gray-800 rounded-2xl animate-pulse" />
             ) : (
@@ -83,7 +88,6 @@ export function AlertsView() {
               <EmptyState />
             ) : (
               <>
-                {/* Active alerts */}
                 {activeAlerts.map((alert) => (
                   <AlertCard
                     key={alert.id}
@@ -92,8 +96,6 @@ export function AlertsView() {
                     onDelete={deleteAlert}
                   />
                 ))}
-
-                {/* Divider between active and paused */}
                 {activeAlerts.length > 0 && pausedAlerts.length > 0 && (
                   <div className="flex items-center gap-3 py-1">
                     <div className="h-px flex-1 bg-gray-800" />
@@ -103,8 +105,6 @@ export function AlertsView() {
                     <div className="h-px flex-1 bg-gray-800" />
                   </div>
                 )}
-
-                {/* Paused alerts */}
                 {pausedAlerts.map((alert) => (
                   <AlertCard
                     key={alert.id}
