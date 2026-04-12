@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import type { Route } from 'next';
 import {
   LayoutDashboard,
   Bell,
@@ -29,16 +30,16 @@ function NavItem({
   active,
   onClick,
 }: {
-  href: string;
+  href: Route;
   label: string;
   icon: React.ElementType;
   active: boolean;
-  onClick?: () => void;
+  onClick?: React.MouseEventHandler<HTMLAnchorElement>; // ← precise type
 }) {
   return (
     <Link
       href={href}
-      onClick={onClick}
+      {...(onClick && { onClick })} // ← only pass onClick when defined
       className={cn(
         'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150',
         active
@@ -83,7 +84,10 @@ export function Sidebar() {
             href={item.href}
             label={item.label}
             icon={item.icon}
-            active={pathname === item.href || pathname.startsWith(item.href + '/')}
+            active={
+              pathname === item.href ||
+              pathname.startsWith(item.href + '/')
+            }
             onClick={() => setMobileOpen(false)}
           />
         ))}

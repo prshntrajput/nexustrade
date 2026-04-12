@@ -8,7 +8,8 @@ import {
 import { getReportRepository } from '@/lib/repositories/report.repository';
 import { DatabaseError, NotFoundError } from '@/lib/errors';
 
-// GET /api/gateway/reports/[id] — single report
+// ─── GET /api/gateway/reports/[id] ───────────────────────────────────────────
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -38,7 +39,8 @@ export async function GET(
   )(request);
 }
 
-// DELETE /api/gateway/reports/[id]
+// ─── DELETE /api/gateway/reports/[id] ────────────────────────────────────────
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -51,7 +53,7 @@ export async function DELETE(
     async (_req: NextRequest, ctx: RequestContext): Promise<Response> => {
       try {
         const repo = getReportRepository();
-        await repo.delete(id, ctx.user!.id);
+        await repo.deleteById(id, ctx.user!.id); // ← fixed: was repo.delete()
         return createSuccessResponse({ deleted: true, id });
       } catch (err) {
         if (err instanceof NotFoundError) {

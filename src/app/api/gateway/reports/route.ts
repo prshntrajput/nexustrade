@@ -13,6 +13,7 @@ import {
   createErrorResponse,
 } from '@/lib/middleware/utils';
 import { getReportRepository } from '@/lib/repositories/report.repository';
+import type { ReportFilters } from '@/lib/repositories/report.repository';
 
 // ─── GET ──────────────────────────────────────────────────────────────────────
 
@@ -33,14 +34,18 @@ async function getReportsHandler(
   const { symbol, sentiment, trigger, limit, offset } =
     ctx.validatedData as ReportsQuery;
 
+  // exactOptionalPropertyTypes: true means we cannot pass `undefined` values
+  // explicitly — build the filters object conditionally instead
+  const filters: ReportFilters = { limit, offset };
+  if (symbol !== undefined) filters.symbol = symbol;
+  if (sentiment !== undefined) filters.sentiment = sentiment;
+  if (trigger !== undefined) filters.trigger = trigger;
+
   try {
-    const reports = await getReportRepository().findByUserId(ctx.user!.id, {
-      symbol,
-      sentiment,
-      trigger,
-      limit,
-      offset,
-    });
+    const reports = await getReportRepository().findByUserId(
+      ctx.user!.id,
+      filters,
+    );
     return createSuccessResponse(reports);
   } catch (err) {
     console.error('[GET /reports]', err);

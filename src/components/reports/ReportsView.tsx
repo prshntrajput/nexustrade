@@ -93,7 +93,41 @@ function FilterBar({
   symbols: string[];
 }) {
   const hasActiveFilters =
-    filters.symbol || filters.sentiment || filters.trigger;
+    filters.symbol ?? filters.sentiment ?? filters.trigger;
+
+  // ── Helpers: build a new filter object without setting undefined ──────────
+  // exactOptionalPropertyTypes: true means we cannot do { symbol: undefined }
+  // — we must delete the key entirely when clearing a filter value
+
+  const setSymbol = (value: string) => {
+    const next: ReportFilters = { ...filters };
+    if (value) {
+      next.symbol = value;
+    } else {
+      delete next.symbol;
+    }
+    setFilters(next);
+  };
+
+  const setSentiment = (value: string) => {
+    const next: ReportFilters = { ...filters };
+    if (value) {
+      next.sentiment = value as NonNullable<ReportFilters['sentiment']>;
+    } else {
+      delete next.sentiment;
+    }
+    setFilters(next);
+  };
+
+  const setTrigger = (value: string) => {
+    const next: ReportFilters = { ...filters };
+    if (value) {
+      next.trigger = value as NonNullable<ReportFilters['trigger']>;
+    } else {
+      delete next.trigger;
+    }
+    setFilters(next);
+  };
 
   return (
     <div className="flex flex-wrap items-center gap-3 p-4 bg-gray-900 border border-gray-800 rounded-xl">
@@ -105,7 +139,7 @@ function FilterBar({
       {/* Symbol dropdown */}
       <select
         value={filters.symbol ?? ''}
-        onChange={(e) => setFilters({ ...filters, symbol: e.target.value || undefined })}
+        onChange={(e) => setSymbol(e.target.value)}
         className="px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-gray-300 text-xs focus:outline-none focus:border-gray-500"
       >
         <option value="">All Symbols</option>
@@ -119,7 +153,7 @@ function FilterBar({
         {SENTIMENTS.map((opt) => (
           <button
             key={opt.value}
-            onClick={() => setFilters({ ...filters, sentiment: opt.value as ReportFilters['sentiment'] })}
+            onClick={() => setSentiment(opt.value)}
             className={cn(
               'px-2.5 py-1 rounded-full text-xs font-medium transition-all',
               (filters.sentiment ?? '') === opt.value
@@ -137,7 +171,7 @@ function FilterBar({
         {TRIGGERS.map((opt) => (
           <button
             key={opt.value}
-            onClick={() => setFilters({ ...filters, trigger: opt.value as ReportFilters['trigger'] })}
+            onClick={() => setTrigger(opt.value)}
             className={cn(
               'px-2.5 py-1 rounded-full text-xs font-medium transition-all',
               (filters.trigger ?? '') === opt.value
@@ -265,14 +299,12 @@ export function ReportsView() {
 
           {/* Right — Reports */}
           <div className="space-y-4">
-            {/* Filter bar */}
             <FilterBar
               filters={filters}
               setFilters={setFilters}
               symbols={watchlistSymbols}
             />
 
-            {/* Reports list */}
             {isLoading ? (
               <div className="space-y-3">
                 <ReportCardSkeleton />
@@ -284,15 +316,13 @@ export function ReportsView() {
                 icon={FileText}
                 title="No reports found"
                 description={
-                  filters.symbol || filters.sentiment || filters.trigger
+                  filters.symbol ?? filters.sentiment ?? filters.trigger
                     ? 'No reports match your current filters. Try clearing the filters.'
                     : 'Click "Analyze" next to any symbol to generate your first AI-powered report.'
                 }
-                action={
-                  filters.symbol || filters.sentiment || filters.trigger
-                    ? { label: 'Clear filters', onClick: () => setFilters({}) }
-                    : undefined
-                }
+                {...((filters.symbol ?? filters.sentiment ?? filters.trigger) && {
+                  action: { label: 'Clear filters', onClick: () => setFilters({}) },
+                })}
               />
             ) : (
               <>
@@ -307,7 +337,6 @@ export function ReportsView() {
                   ))}
                 </div>
 
-                {/* Load more */}
                 {hasMore && (
                   <div className="flex justify-center pt-2">
                     <button
@@ -328,7 +357,6 @@ export function ReportsView() {
         </div>
       </div>
 
-      {/* Report detail slide-over */}
       <ReportDetail
         report={selectedReport}
         onClose={() => setSelectedReport(null)}

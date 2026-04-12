@@ -40,29 +40,55 @@ function mapRow(row: Record<string, unknown>): Report {
 }
 
 export class ReportRepository {
+  // ── List with filters + pagination ──────────────────────────────────────
+
   async findByUserId(
     userId: string,
     filters: ReportFilters = {},
   ): Promise<Report[]> {
     const supabase = getAdminClient();
+    const limit = filters.limit ?? 20;
+    const offset = filters.offset ?? 0;
 
     let query = supabase
       .from('reports')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
-      .limit(filters.limit ?? 20);
+      .range(offset, offset + limit - 1); // always use range for consistent pagination
 
     if (filters.symbol) query = query.eq('symbol', filters.symbol);
     if (filters.sentiment) query = query.eq('sentiment', filters.sentiment);
     if (filters.trigger) query = query.eq('trigger', filters.trigger);
-    if (filters.offset) query = query.range(filters.offset, (filters.offset + (filters.limit ?? 20)) - 1);
 
     const { data, error } = await query;
     if (error) throw new DatabaseError(error.message);
 
-    return (data ?? []).map(mapRow);
+    return (data ?? []).map((row) => mapRow(row as Record<string, unknown>));
   }
+
+  // ── Find single report by ID (user-scoped) ──────────────────────────────
+
+  async findById(reportId: string, userId: string): Promise<Report | null> {
+    const supabase = getAdminClient();
+
+    const { data, error } = await supabase
+      .from('reports')
+      .select('*')
+      .eq('id', reportId)
+      .eq('user_id', userId) // user can only access their own reports
+      .single();
+
+    if (error) {
+      // PGRST116 = no rows found — not a real DB error
+      if (error.code === 'PGRST116') return null;
+      throw new DatabaseError(error.message);
+    }
+
+    return data ? mapRow(data as Record<string, unknown>) : null;
+  }
+
+  // ── Create ──────────────────────────────────────────────────────────────
 
   async create(userId: string, payload: CreateReportPayload): Promise<Report> {
     const supabase = getAdminClient();
@@ -88,18 +114,25 @@ export class ReportRepository {
     return mapRow(data as Record<string, unknown>);
   }
 
+  // ── Delete ──────────────────────────────────────────────────────────────
+
   async deleteById(userId: string, reportId: string): Promise<void> {
     const supabase = getAdminClient();
+
     const { error } = await supabase
       .from('reports')
       .delete()
       .eq('id', reportId)
       .eq('user_id', userId);
+
     if (error) throw new DatabaseError(error.message);
   }
 }
 
+// ─── Singleton ────────────────────────────────────────────────────────────────
+
 let _repo: ReportRepository | null = null;
+
 export function getReportRepository(): ReportRepository {
   if (!_repo) _repo = new ReportRepository();
   return _repo;

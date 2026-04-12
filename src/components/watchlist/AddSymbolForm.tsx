@@ -74,11 +74,12 @@ export function AddSymbolForm({ existingSymbols, onAdd }: AddSymbolFormProps) {
         <Input
           {...register('symbol')}
           placeholder="e.g. AAPL"
-          error={errors.symbol?.message}
           className="uppercase"
           autoFocus
           autoComplete="off"
           maxLength={10}
+          // exactOptionalPropertyTypes: only pass error when it exists
+          {...(errors.symbol?.message && { error: errors.symbol.message })}
         />
       </div>
 
@@ -86,19 +87,27 @@ export function AddSymbolForm({ existingSymbols, onAdd }: AddSymbolFormProps) {
         <Input
           {...register('notes')}
           placeholder="Notes (optional)"
-          error={errors.notes?.message}
+          {...(errors.notes?.message && { error: errors.notes.message })}
         />
       </div>
 
       {serverError && (
-        <p className="text-red-400 text-xs self-center whitespace-nowrap">{serverError}</p>
+        <p className="text-red-400 text-xs self-center whitespace-nowrap">
+          {serverError}
+        </p>
       )}
 
       <div className="flex items-center gap-2 flex-shrink-0">
         <Button type="submit" isLoading={isSubmitting}>
           {!isSubmitting && 'Add'}
         </Button>
-        <Button type="button" variant="ghost" size="icon" onClick={handleCancel} aria-label="Cancel">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={handleCancel}
+          aria-label="Cancel"
+        >
           <X size={16} />
         </Button>
       </div>

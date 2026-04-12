@@ -4,6 +4,10 @@ import useSWR from 'swr';
 import { useState } from 'react';
 import type { WatchlistItem } from '@/types';
 
+// ← Add this one line — exported so WatchlistPage (server component) can
+// use it as the SWR fallback key for zero-flash prefetching
+export const WATCHLIST_KEY = '/api/gateway/watchlist';
+
 const fetcher = async (url: string): Promise<WatchlistItem[]> => {
   const res = await fetch(url, { credentials: 'include' });
   if (!res.ok) {
@@ -18,14 +22,12 @@ const fetcher = async (url: string): Promise<WatchlistItem[]> => {
 };
 
 export interface UseWatchlistReturn {
-  // Primary interface — matches WatchlistContent.tsx
   watchlist: WatchlistItem[];
   isLoading: boolean;
   isError: boolean;
   errorMessage: string | null;
   addSymbol: (symbol: string, notes?: string) => Promise<void>;
   removeSymbol: (id: string) => Promise<void>;
-  // Aliases — used by AlertsView and ReportsView
   items: WatchlistItem[];
   mutate: () => void;
 }
@@ -34,7 +36,7 @@ export function useWatchlist(): UseWatchlistReturn {
   const [adding, setAdding] = useState(false);
 
   const { data, isLoading, error, mutate } = useSWR<WatchlistItem[]>(
-    '/api/gateway/watchlist',
+    WATCHLIST_KEY, // ← use the constant instead of the string literal
     fetcher,
     {
       revalidateOnFocus: true,
@@ -49,7 +51,7 @@ export function useWatchlist(): UseWatchlistReturn {
     if (adding) return;
     setAdding(true);
     try {
-      const res = await fetch('/api/gateway/watchlist', {
+      const res = await fetch(WATCHLIST_KEY, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -68,7 +70,7 @@ export function useWatchlist(): UseWatchlistReturn {
   const removeSymbol = async (id: string): Promise<void> => {
     await mutate(
       async (current = []) => {
-        const res = await fetch(`/api/gateway/watchlist/${id}`, {
+        const res = await fetch(`${WATCHLIST_KEY}/${id}`, {
           method: 'DELETE',
           credentials: 'include',
         });
@@ -85,14 +87,12 @@ export function useWatchlist(): UseWatchlistReturn {
   };
 
   return {
-    // Primary interface
     watchlist,
     isLoading,
     isError: !!error,
     errorMessage: error instanceof Error ? error.message : null,
     addSymbol,
     removeSymbol,
-    // Aliases for other components that use items/removeItem
     items: watchlist,
     mutate,
   };

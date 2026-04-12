@@ -2,6 +2,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { DatabaseError, NotFoundError } from '@/lib/errors';
 import type { Alert, AlertWithSymbol } from '@/types';
 
+// Supabase returns joined relations as arrays even with !inner
 interface AlertRow {
   id: string;
   watchlist_id: string;
@@ -11,15 +12,17 @@ interface AlertRow {
   multiplier: number | null;
   is_active: boolean;
   created_at: string;
-  watchlist: { symbol: string };
+  watchlist: { symbol: string }[]; // ← was { symbol: string }, must be array
 }
 
 function mapRow(row: AlertRow): AlertWithSymbol {
+  // !inner guarantees at least one row — but we guard with fallback
+  const symbol = row.watchlist[0]?.symbol ?? '';
   return {
     id: row.id,
     watchlistId: row.watchlist_id,
     userId: row.user_id,
-    symbol: row.watchlist.symbol.toUpperCase(),
+    symbol: symbol.toUpperCase(),
     conditionType: row.condition_type,
     threshold: row.threshold,
     multiplier: row.multiplier,
@@ -60,7 +63,7 @@ export class SupabaseAlertRepository {
       .order('created_at', { ascending: false });
 
     if (error) throw new DatabaseError('Failed to fetch alerts', error);
-    return (data ?? []).map((row) => mapRow(row as AlertRow));
+    return (data ?? []).map((row) => mapRow(row as unknown as AlertRow));
   }
 
   async findById(id: string, userId: string): Promise<AlertWithSymbol | null> {
@@ -73,7 +76,7 @@ export class SupabaseAlertRepository {
 
     if (error?.code === 'PGRST116') return null;
     if (error) throw new DatabaseError('Failed to fetch alert', error);
-    return data ? mapRow(data as AlertRow) : null;
+    return data ? mapRow(data as unknown as AlertRow) : null;
   }
 
   async create(userId: string, data: CreateAlertData): Promise<AlertWithSymbol> {
@@ -91,7 +94,7 @@ export class SupabaseAlertRepository {
       .single();
 
     if (error) throw new DatabaseError('Failed to create alert', error);
-    return mapRow(row as AlertRow);
+    return mapRow(row as unknown as AlertRow);
   }
 
   async updateActive(
@@ -109,7 +112,7 @@ export class SupabaseAlertRepository {
 
     if (error?.code === 'PGRST116') throw new NotFoundError('Alert');
     if (error) throw new DatabaseError('Failed to update alert', error);
-    return mapRow(row as AlertRow);
+    return mapRow(row as unknown as AlertRow);
   }
 
   async delete(id: string, userId: string): Promise<void> {
