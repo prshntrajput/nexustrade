@@ -16,30 +16,31 @@ export default async function WatchlistPage() {
 
   if (!user) redirect('/login');
 
-  // Server-side prefetch — SWRFallback injects this as SWR's
-  // initial cache so there is zero loading flash on first render
   let initialWatchlist: WatchlistItem[] = [];
   try {
     const repo = getWatchlistRepository();
     initialWatchlist = await repo.findByUserId(user.id);
   } catch {
-    // Graceful degradation — SWR will re-fetch on the client
     initialWatchlist = [];
   }
 
   return (
     <SWRFallback fallback={{ [WATCHLIST_KEY]: initialWatchlist }}>
-      {/* Page header — static, server-rendered */}
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white">Watchlist</h1>
-          <p className="text-gray-500 text-sm mt-1">
+      <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+
+        {/* Page header */}
+        <div className="mb-5 sm:mb-6 border-b border-border pb-4 sm:pb-5">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
+            Watchlist
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">
             Monitor live prices, set alerts, and trigger AI analysis.
           </p>
         </div>
 
-        {/* Client island — owns all interactivity */}
+        {/* Client island */}
         <WatchlistContent />
+
       </div>
     </SWRFallback>
   );

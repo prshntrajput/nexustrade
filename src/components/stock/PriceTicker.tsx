@@ -11,45 +11,32 @@ type FlashState = 'up' | 'down' | 'neutral';
 
 interface PriceTickerProps {
   symbol: string;
-  /** Optional initial price — avoids REST fetch if parent already has it */
   initialPrice?: number;
-  /** Show % change alongside price */
   showChange?: boolean;
   className?: string;
 }
 
-/**
- * T22 — Self-contained live price display.
- * 1. Fetches initial quote via SWR (REST) for instant display on mount
- * 2. Updates in real-time via useStockFeed (Supabase Broadcast ← Finnhub WS)
- * 3. Flashes green on price UP, red on price DOWN, fades back after 600ms
- * 4. Shows a pulsing connection indicator dot
- */
 export function PriceTicker({
   symbol,
   initialPrice,
   showChange = false,
   className,
 }: PriceTickerProps) {
-  // Initial price from REST (deduped + cached 15s by SWR, matching gateway TTL)
   const { data: quote } = useSWR<Quote>(
     `/api/gateway/quote?symbol=${symbol}`,
     { dedupingInterval: 15_000, revalidateOnFocus: false },
   );
 
-  // Live ticks via WebSocket → Supabase Broadcast
   const { tick, isConnected } = useStockFeed(symbol);
 
-  // Flash state for price direction indicator
   const [flash, setFlash] = useState<FlashState>('neutral');
-  const prevPriceRef = useRef<number | undefined>(initialPrice ?? quote?.price);
+  const prevPriceRef  = useRef<number | undefined>(initialPrice ?? quote?.price);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Derived current price: live tick > REST quote > initialPrice prop
-  const currentPrice = tick?.price ?? quote?.price ?? initialPrice;
+  const currentPrice  = tick?.price ?? quote?.price ?? initialPrice;
   const changePercent = quote?.changePercent ?? 0;
 
-  // ─── Flash on price change ─────────────────────────────────────────────
+  // ─── Flash on price change ────────────────────────────────────────────────
 
   useEffect(() => {
     if (!tick) return;
@@ -60,12 +47,8 @@ export function PriceTicker({
       const direction: FlashState = tick.price > prev ? 'up' : 'down';
       setFlash(direction);
 
-      // Clear any existing timer before setting a new one
       if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
-
-      flashTimerRef.current = setTimeout(() => {
-        setFlash('neutral');
-      }, 600);
+      flashTimerRef.current = setTimeout(() => setFlash('neutral'), 600);
     }
 
     prevPriceRef.current = tick.price;
@@ -75,7 +58,7 @@ export function PriceTicker({
     };
   }, [tick]);
 
-  // ─── Sync prevPriceRef when REST quote loads (before first tick) ────────
+  // ─── Sync prevPriceRef when REST quote loads ──────────────────────────────
 
   useEffect(() => {
     if (quote?.price !== undefined && prevPriceRef.current === undefined) {
@@ -83,26 +66,30 @@ export function PriceTicker({
     }
   }, [quote?.price]);
 
-  // ─── Render ────────────────────────────────────────────────────────────
+  // ─── Loading state ────────────────────────────────────────────────────────
 
   if (currentPrice === undefined) {
     return (
       <div className={cn('flex items-center gap-1.5', className)}>
-        <span className="font-mono text-sm text-gray-600 tabular-nums">—</span>
+        <span className="font-mono text-sm text-muted-foreground/40 tabular-nums">
+          —
+        </span>
       </div>
     );
   }
 
+  // ─── Render ───────────────────────────────────────────────────────────────
+
   return (
-    <div className={cn('flex items-center gap-2', className)}>
+    <div className={cn('flex items-center gap-1.5 sm:gap-2 flex-wrap', className)}>
+
       {/* Price value with flash animation */}
       <span
         className={cn(
-          'font-mono tabular-nums text-sm font-semibold',
-          'transition-colors duration-500',
-          flash === 'up' && 'text-emerald-400',
-          flash === 'down' && 'text-red-400',
-          flash === 'neutral' && 'text-white',
+          'font-mono tabular-nums text-sm font-semibold transition-colors duration-500',
+          flash === 'up'      && 'text-primary',
+          flash === 'down'    && 'text-destructive',
+          flash === 'neutral' && 'text-foreground',
         )}
       >
         ${currentPrice.toFixed(2)}
@@ -112,14 +99,14 @@ export function PriceTicker({
       {flash === 'up' && (
         <TrendingUp
           size={13}
-          className="text-emerald-400 flex-shrink-0"
+          className="text-primary flex-shrink-0"
           aria-label="Price up"
         />
       )}
       {flash === 'down' && (
         <TrendingDown
           size={13}
-          className="text-red-400 flex-shrink-0"
+          className="text-destructive flex-shrink-0"
           aria-label="Price down"
         />
       )}
@@ -128,8 +115,8 @@ export function PriceTicker({
       {showChange && quote && flash === 'neutral' && (
         <span
           className={cn(
-            'text-xs font-medium tabular-nums',
-            changePercent >= 0 ? 'text-emerald-500' : 'text-red-500',
+            'text-xs font-medium tabular-nums flex-shrink-0',
+            changePercent >= 0 ? 'text-primary/80' : 'text-destructive/80',
           )}
         >
           {changePercent >= 0 ? '+' : ''}
@@ -142,11 +129,12 @@ export function PriceTicker({
         <span
           title={isConnected ? 'Live feed connected' : 'Connecting to live feed...'}
           aria-label={isConnected ? 'Live' : 'Connecting'}
+          className="flex-shrink-0"
         >
           {isConnected ? (
-            <Wifi size={11} className="text-emerald-600" />
+            <Wifi size={11} className="text-primary/60" />
           ) : (
-            <WifiOff size={11} className="text-gray-600" />
+            <WifiOff size={11} className="text-muted-foreground/40" />
           )}
         </span>
       )}

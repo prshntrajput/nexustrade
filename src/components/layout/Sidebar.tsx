@@ -18,9 +18,9 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
-  { href: '/watchlist', label: 'Watchlist', icon: LayoutDashboard },
-  { href: '/alerts', label: 'Alerts', icon: Bell },
-  { href: '/reports', label: 'AI Reports', icon: FileText },
+  { href: '/watchlist', label: 'Watchlist',  icon: LayoutDashboard },
+  { href: '/alerts',   label: 'Alerts',      icon: Bell },
+  { href: '/reports',  label: 'AI Reports',  icon: FileText },
 ] as const;
 
 function NavItem({
@@ -34,28 +34,28 @@ function NavItem({
   label: string;
   icon: React.ElementType;
   active: boolean;
-  onClick?: React.MouseEventHandler<HTMLAnchorElement>; // ← precise type
+  onClick?: React.MouseEventHandler<HTMLAnchorElement>;
 }) {
   return (
     <Link
       href={href}
-      {...(onClick && { onClick })} // ← only pass onClick when defined
+      {...(onClick && { onClick })}
       className={cn(
-        'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150',
+        'flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all duration-150',
         active
-          ? 'bg-emerald-500/15 text-emerald-400'
-          : 'text-gray-500 hover:text-gray-200 hover:bg-gray-800',
+          ? 'bg-primary/15 text-primary border-l-2 border-primary pl-[10px]'
+          : 'text-muted-foreground hover:text-foreground hover:bg-secondary',
       )}
     >
-      <Icon size={16} />
-      {label}
+      <Icon size={16} className="flex-shrink-0" />
+      <span className="truncate">{label}</span>
     </Link>
   );
 }
 
 export function Sidebar() {
-  const pathname = usePathname();
-  const router = useRouter();
+  const pathname    = usePathname();
+  const router      = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleSignOut = async () => {
@@ -67,17 +67,20 @@ export function Sidebar() {
   const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-4 py-5 border-b border-gray-800">
-        <div className="w-7 h-7 bg-emerald-500/20 rounded-lg flex items-center justify-center">
-          <TrendingUp size={14} className="text-emerald-400" />
+      <div className="flex items-center gap-2.5 px-4 py-5 border-b border-sidebar-border">
+        <div className="w-7 h-7 bg-primary/15 border border-primary/25 flex items-center justify-center flex-shrink-0">
+          <TrendingUp size={14} className="text-primary" />
         </div>
-        <span className="font-bold text-white text-[15px] tracking-tight">
+        <span className="font-bold text-foreground text-[15px] tracking-tight truncate">
           NexusTrade
         </span>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav
+        className="flex-1 px-0 py-3 space-y-0.5"
+        aria-label="Main navigation"
+      >
         {NAV_ITEMS.map((item) => (
           <NavItem
             key={item.href}
@@ -94,13 +97,16 @@ export function Sidebar() {
       </nav>
 
       {/* Sign out */}
-      <div className="px-3 pb-5 border-t border-gray-800 pt-4">
+      <div className="px-3 pb-5 border-t border-sidebar-border pt-4">
         <button
           onClick={handleSignOut}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all"
+          className={cn(
+            'w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all duration-150',
+            'text-muted-foreground hover:text-destructive hover:bg-destructive/10',
+          )}
         >
-          <LogOut size={15} />
-          Sign out
+          <LogOut size={15} className="flex-shrink-0" />
+          <span className="truncate">Sign out</span>
         </button>
       </div>
     </div>
@@ -108,40 +114,60 @@ export function Sidebar() {
 
   return (
     <>
-      {/* ── Desktop sidebar ──────────────────────────────────────────────── */}
-      <aside className="hidden md:flex w-[220px] shrink-0 flex-col bg-gray-900 border-r border-gray-800 h-screen sticky top-0">
+      {/* ── Desktop sidebar ─────────────────────────────────────────────── */}
+      <aside className="hidden md:flex w-[220px] shrink-0 flex-col bg-sidebar border-r border-sidebar-border h-screen sticky top-0 overflow-y-auto">
         {sidebarContent}
       </aside>
 
-      {/* ── Mobile: hamburger button ─────────────────────────────────────── */}
+      {/* ── Mobile: hamburger ───────────────────────────────────────────── */}
+      {/*
+        z-30 keeps it above the page content (z-0) and the header (z-20)
+        so it's always tappable. Vertically centered inside the 56px
+        header (top-0 h-14 = 56px → top-[11px] centers a 34px button).
+      */}
       <button
         onClick={() => setMobileOpen(true)}
         aria-label="Open navigation"
-        className="md:hidden fixed top-4 left-4 z-30 p-2 rounded-xl bg-gray-900 border border-gray-800 text-gray-400"
+        className={cn(
+          'md:hidden fixed top-[11px] left-3 z-30 p-2',
+          'bg-card border border-border text-muted-foreground',
+          'hover:text-foreground hover:bg-secondary transition-all duration-150',
+        )}
       >
         <Menu size={18} />
       </button>
 
-      {/* ── Mobile: drawer ───────────────────────────────────────────────── */}
+      {/* ── Mobile: backdrop ────────────────────────────────────────────── */}
       {mobileOpen && (
-        <>
-          <div
-            className="md:hidden fixed inset-0 bg-black/60 z-40"
-            onClick={() => setMobileOpen(false)}
-            aria-hidden="true"
-          />
-          <aside className="md:hidden fixed inset-y-0 left-0 w-[240px] z-50 flex flex-col bg-gray-900 border-r border-gray-800">
-            <button
-              onClick={() => setMobileOpen(false)}
-              aria-label="Close navigation"
-              className="absolute top-4 right-4 p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 transition-all"
-            >
-              <X size={16} />
-            </button>
-            {sidebarContent}
-          </aside>
-        </>
+        <div
+          className="md:hidden fixed inset-0 bg-background/80 backdrop-blur-sm z-40"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
       )}
+
+      {/* ── Mobile: drawer ──────────────────────────────────────────────── */}
+      <aside
+        className={cn(
+          'md:hidden fixed inset-y-0 left-0 w-[240px] z-50 flex flex-col',
+          'bg-sidebar border-r border-sidebar-border overflow-y-auto',
+          'transition-transform duration-200 ease-in-out',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full',
+        )}
+        aria-label="Mobile navigation"
+      >
+        <button
+          onClick={() => setMobileOpen(false)}
+          aria-label="Close navigation"
+          className={cn(
+            'absolute top-4 right-4 p-1.5 z-10',
+            'text-muted-foreground hover:text-foreground hover:bg-secondary transition-all',
+          )}
+        >
+          <X size={16} />
+        </button>
+        {sidebarContent}
+      </aside>
     </>
   );
 }

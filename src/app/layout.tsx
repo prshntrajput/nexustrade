@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
-import { Geist } from 'next/font/google';
+import { Source_Code_Pro } from 'next/font/google';
 import './globals.css';
 import Providers from './providers';
 
-const geist = Geist({
-  variable: '--font-geist',
+const sourceCodePro = Source_Code_Pro({
+  variable: '--font-mono',
   subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -23,13 +25,10 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      // ← Fixes "Detected scroll-behavior: smooth on <html> element" warning
       data-scroll-behavior="smooth"
     >
       <body
-        className={`${geist.variable} font-sans antialiased`}
-        // ← Suppresses browser extension attribute injection (e.g. ColorZilla
-        //   adds cz-shortcut-listen="true" which causes hydration mismatch)
+        className={`${sourceCodePro.variable} font-mono antialiased bg-background text-foreground`}
         suppressHydrationWarning
       >
         <Providers>{children}</Providers>

@@ -36,38 +36,41 @@ export function WatchlistRow({ item, onRemove }: WatchlistRowProps) {
   return (
     <div
       className={cn(
-        'group flex items-center justify-between p-4',
-        'bg-gray-900 border border-gray-800 rounded-xl',
-        'hover:border-gray-700 transition-all duration-150',
+        'group flex items-center justify-between gap-2 sm:gap-3 p-3 sm:p-4',
+        'bg-card border border-border',
+        'hover:border-primary/30 transition-all duration-150',
         removing && 'opacity-40 pointer-events-none scale-[0.99]',
       )}
     >
       {/* Symbol + meta */}
-      <div className="flex items-center gap-4 min-w-0">
-        <div className="w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
-          <TrendingUp size={18} className="text-emerald-500" />
+      <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+        {/* Icon — hidden on very small screens to save space */}
+        <div className="hidden xs:flex sm:flex w-9 sm:w-10 h-9 sm:h-10 bg-primary/10 border border-primary/20 items-center justify-center flex-shrink-0">
+          <TrendingUp size={16} className="text-primary" />
         </div>
 
         <div className="min-w-0">
-          <p className="font-bold text-white text-[15px] leading-snug tracking-wide">
+          <p className="font-bold text-foreground text-[15px] leading-snug tracking-wide">
             {item.symbol}
           </p>
-          <p className="text-gray-600 text-xs mt-0.5">Added {formatDate(item.addedAt)}</p>
+          <p className="text-muted-foreground/50 text-xs mt-0.5">
+            Added {formatDate(item.addedAt)}
+          </p>
           {item.notes && (
-            <p className="text-gray-700 text-xs mt-0.5 truncate max-w-[200px]">
+            <p className="text-muted-foreground/40 text-xs mt-0.5 truncate max-w-[140px] sm:max-w-[200px]">
               {item.notes}
             </p>
           )}
         </div>
       </div>
 
-      {/* T22 — Live price ticker (REST initial + real-time WebSocket updates) */}
-      <div className="hidden sm:flex flex-col items-end min-w-[140px] mx-4">
+      {/* Live price ticker — visible from sm up */}
+      <div className="hidden sm:flex flex-col items-end min-w-[120px] lg:min-w-[140px] mx-2 sm:mx-4 flex-shrink-0">
         <PriceTicker symbol={item.symbol} showChange />
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-1.5 ml-2 flex-shrink-0">
+      <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
         <Link
           href={`/stock/${item.symbol}`}
           aria-label={`View ${item.symbol} details`}

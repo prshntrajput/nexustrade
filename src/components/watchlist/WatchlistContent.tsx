@@ -16,7 +16,7 @@ export default function WatchlistContent() {
   // ─── Loading state ────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-2 sm:space-y-3">
         <WatchlistRowSkeleton />
         <WatchlistRowSkeleton />
         <WatchlistRowSkeleton />
@@ -27,17 +27,18 @@ export default function WatchlistContent() {
   // ─── Error state ──────────────────────────────────────────────────────────
   if (isError) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center mb-4">
-          <RefreshCw size={22} className="text-red-400" />
+      <div className="flex flex-col items-center justify-center py-16 sm:py-20 text-center px-4">
+        <div className="w-12 h-12 bg-destructive/10 flex items-center justify-center mb-4">
+          <RefreshCw size={22} className="text-destructive" />
         </div>
-        <h3 className="text-base font-semibold text-white mb-1">
+        <h3 className="text-base font-semibold text-foreground mb-1">
           Failed to load watchlist
         </h3>
-        <p className="text-gray-500 text-sm mb-4 max-w-xs">
+        <p className="text-muted-foreground text-sm mb-4 max-w-xs leading-relaxed">
           {errorMessage ?? 'Something went wrong. Please try again.'}
         </p>
         <Button variant="secondary" onClick={() => window.location.reload()}>
+          <RefreshCw size={14} />
           Retry
         </Button>
       </div>
@@ -47,14 +48,14 @@ export default function WatchlistContent() {
   // ─── Empty state ──────────────────────────────────────────────────────────
   if (watchlist.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mb-5">
-          <BarChart2 size={28} className="text-gray-600" />
+      <div className="flex flex-col items-center justify-center py-16 sm:py-20 text-center px-4">
+        <div className="w-14 sm:w-16 h-14 sm:h-16 bg-secondary flex items-center justify-center mb-4 sm:mb-5">
+          <BarChart2 size={26} className="text-muted-foreground" />
         </div>
-        <h3 className="text-lg font-semibold text-white mb-2">
+        <h3 className="text-lg font-semibold text-foreground mb-2">
           Your watchlist is empty
         </h3>
-        <p className="text-gray-500 text-sm max-w-sm mb-8 leading-relaxed">
+        <p className="text-muted-foreground text-sm max-w-sm mb-6 sm:mb-8 leading-relaxed">
           Add stock symbols to monitor live prices, set alerts, and get
           AI-powered analysis from Gemini.
         </p>
@@ -65,7 +66,7 @@ export default function WatchlistContent() {
 
   // ─── Data state ───────────────────────────────────────────────────────────
   return (
-    <div className="space-y-3">
+    <div className="space-y-2 sm:space-y-3">
       {watchlist.map((item) => (
         <WatchlistRow key={item.id} item={item} onRemove={removeSymbol} />
       ))}

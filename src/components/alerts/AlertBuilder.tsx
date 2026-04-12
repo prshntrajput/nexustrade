@@ -37,35 +37,35 @@ const CONDITION_OPTIONS: {
     label: 'Price Above',
     hint: 'Fires when price crosses above threshold',
     category: 'Price',
-    categoryColor: 'bg-blue-500/10 text-blue-400',
+    categoryColor: 'bg-primary/10 text-primary',
   },
   {
     type: 'PRICE_BELOW',
     label: 'Price Below',
     hint: 'Fires when price drops below threshold',
     category: 'Price',
-    categoryColor: 'bg-blue-500/10 text-blue-400',
+    categoryColor: 'bg-primary/10 text-primary',
   },
   {
     type: 'RSI_ABOVE',
     label: 'RSI Above',
     hint: 'Overbought signal — evaluated by scheduled analysis',
     category: 'Technical',
-    categoryColor: 'bg-purple-500/10 text-purple-400',
+    categoryColor: 'bg-muted text-muted-foreground',
   },
   {
     type: 'RSI_BELOW',
     label: 'RSI Below',
     hint: 'Oversold signal — evaluated by scheduled analysis',
     category: 'Technical',
-    categoryColor: 'bg-purple-500/10 text-purple-400',
+    categoryColor: 'bg-muted text-muted-foreground',
   },
   {
     type: 'VOLUME_SPIKE',
     label: 'Volume Spike',
     hint: 'Fires when volume exceeds normal by a set multiplier',
     category: 'Volume',
-    categoryColor: 'bg-orange-500/10 text-orange-400',
+    categoryColor: 'bg-accent text-accent-foreground/80',
   },
 ];
 
@@ -90,10 +90,8 @@ function buildCondition(form: FormState): Record<string, unknown> | null {
   return { type: form.conditionType, threshold: t };
 }
 
-// ← default prop = [] so watchlistItems is NEVER undefined on first render
 export function AlertBuilder({ watchlistItems = [], onCreated }: AlertBuilderProps) {
   const [form, setForm] = useState<FormState>({
-    // Safe now — watchlistItems defaults to [] so [0] is just undefined, not a crash
     watchlistId: watchlistItems[0]?.id ?? '',
     conditionType: '',
     threshold: '',
@@ -103,7 +101,6 @@ export function AlertBuilder({ watchlistItems = [], onCreated }: AlertBuilderPro
   const [formError, setFormError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  // ← Auto-select first watchlist item once SWR loads (initial state was '' because SWR was loading)
   useEffect(() => {
     setForm((f) => {
       if (!f.watchlistId && watchlistItems.length > 0) {
@@ -193,18 +190,18 @@ export function AlertBuilder({ watchlistItems = [], onCreated }: AlertBuilderPro
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-gray-900 border border-gray-800 rounded-2xl p-5 space-y-5"
+      className="bg-card border border-border p-4 sm:p-5 space-y-5 w-full"
     >
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 bg-emerald-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
-          <Bell size={16} className="text-emerald-500" />
+        <div className="w-9 h-9 bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
+          <Bell size={16} className="text-primary" />
         </div>
         <div>
-          <h2 className="text-white font-semibold text-[15px] leading-snug">
+          <h2 className="text-foreground font-semibold text-[15px] leading-snug">
             Create Alert
           </h2>
-          <p className="text-gray-600 text-xs mt-0.5">
+          <p className="text-muted-foreground/70 text-xs mt-0.5">
             Get notified when conditions are triggered
           </p>
         </div>
@@ -212,13 +209,13 @@ export function AlertBuilder({ watchlistItems = [], onCreated }: AlertBuilderPro
 
       {/* Step 1 — Symbol */}
       <div className="space-y-2">
-        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
+        <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           Symbol
         </label>
 
         {watchlistItems.length === 0 ? (
-          <div className="px-3 py-3 bg-gray-800 border border-gray-700 rounded-lg">
-            <p className="text-gray-600 text-sm">
+          <div className="px-3 py-3 bg-secondary border border-border">
+            <p className="text-muted-foreground text-sm">
               Add symbols to your watchlist first before creating alerts.
             </p>
           </div>
@@ -230,21 +227,25 @@ export function AlertBuilder({ watchlistItems = [], onCreated }: AlertBuilderPro
                 setForm((f) => ({ ...f, watchlistId: e.target.value }))
               }
               className={cn(
-                'w-full appearance-none px-3 py-2.5 pr-8 rounded-lg text-sm',
-                'bg-gray-800 border border-gray-700 text-white',
-                'focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600/30',
+                'w-full appearance-none px-3 py-2.5 pr-8 text-sm',
+                'bg-secondary border border-border text-foreground',
+                'focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30',
                 'transition-all duration-150',
               )}
             >
               {watchlistItems.map((item) => (
-                <option key={item.id} value={item.id}>
+                <option
+                  key={item.id}
+                  value={item.id}
+                  className="bg-card text-foreground"
+                >
                   {item.symbol}
                 </option>
               ))}
             </select>
             <ChevronDown
               size={14}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
             />
           </div>
         )}
@@ -252,7 +253,7 @@ export function AlertBuilder({ watchlistItems = [], onCreated }: AlertBuilderPro
 
       {/* Step 2 — Condition type */}
       <div className="space-y-2">
-        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
+        <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           Condition
         </label>
         <div className="space-y-1.5">
@@ -264,43 +265,47 @@ export function AlertBuilder({ watchlistItems = [], onCreated }: AlertBuilderPro
                 type="button"
                 onClick={() => handleConditionSelect(opt.type)}
                 className={cn(
-                  'w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border',
-                  'text-left transition-all duration-150',
+                  'w-full flex items-center justify-between gap-3 px-3 py-2.5 border',
+                  'text-left transition-all duration-150 min-h-[52px]',
                   selected
-                    ? 'bg-emerald-500/10 border-emerald-600/40'
-                    : 'bg-gray-800 border-gray-700 hover:border-gray-600',
+                    ? 'bg-primary/10 border-primary/40'
+                    : 'bg-secondary border-border hover:border-border/70 hover:bg-muted',
                 )}
               >
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span
                       className={cn(
                         'text-sm font-medium',
-                        selected ? 'text-emerald-400' : 'text-gray-300',
+                        selected ? 'text-primary' : 'text-foreground/80',
                       )}
                     >
                       {opt.label}
                     </span>
                     <span
                       className={cn(
-                        'text-[10px] font-semibold px-1.5 py-0.5 rounded',
+                        'text-[10px] font-semibold px-1.5 py-0.5',
                         opt.categoryColor,
                       )}
                     >
                       {opt.category}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-600 mt-0.5 truncate">{opt.hint}</p>
+                  <p className="text-xs text-muted-foreground/60 mt-0.5 truncate">
+                    {opt.hint}
+                  </p>
                 </div>
+                {/* Selected checkmark */}
                 {selected && (
-                  <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
+                  <div className="w-4 h-4 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
                     <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
                       <path
                         d="M1 4L3 6L7 2"
-                        stroke="white"
+                        stroke="currentColor"
                         strokeWidth="1.5"
                         strokeLinecap="round"
                         strokeLinejoin="round"
+                        className="text-primary-foreground"
                       />
                     </svg>
                   </div>
@@ -311,10 +316,10 @@ export function AlertBuilder({ watchlistItems = [], onCreated }: AlertBuilderPro
         </div>
       </div>
 
-      {/* Step 3 — Dynamic parameter (discriminated union) */}
+      {/* Step 3 — Threshold input */}
       {needsThreshold && (
         <div className="space-y-2">
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             {isPrice ? 'Target Price (USD)' : 'RSI Threshold (0–100)'}
           </label>
           <input
@@ -327,9 +332,10 @@ export function AlertBuilder({ watchlistItems = [], onCreated }: AlertBuilderPro
             step={isPrice ? '0.01' : '1'}
             required
             className={cn(
-              'w-full px-3 py-2.5 rounded-lg text-sm',
-              'bg-gray-800 border border-gray-700 text-white placeholder-gray-600',
-              'focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600/30',
+              'w-full px-3 py-2.5 text-sm',
+              'bg-secondary border border-border text-foreground',
+              'placeholder:text-muted-foreground/40',
+              'focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30',
               'transition-all duration-150',
               '[appearance:textfield]',
               '[&::-webkit-outer-spin-button]:appearance-none',
@@ -337,16 +343,17 @@ export function AlertBuilder({ watchlistItems = [], onCreated }: AlertBuilderPro
             )}
           />
           {isRSI && (
-            <p className="text-gray-700 text-xs">
+            <p className="text-muted-foreground/50 text-xs">
               Common values: overbought = 70, oversold = 30
             </p>
           )}
         </div>
       )}
 
+      {/* Step 3 — Volume multiplier */}
       {isVolume && (
         <div className="space-y-2">
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Volume Multiplier
           </label>
           <input
@@ -358,16 +365,17 @@ export function AlertBuilder({ watchlistItems = [], onCreated }: AlertBuilderPro
             step="0.5"
             required
             className={cn(
-              'w-full px-3 py-2.5 rounded-lg text-sm',
-              'bg-gray-800 border border-gray-700 text-white placeholder-gray-600',
-              'focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600/30',
+              'w-full px-3 py-2.5 text-sm',
+              'bg-secondary border border-border text-foreground',
+              'placeholder:text-muted-foreground/40',
+              'focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30',
               'transition-all duration-150',
               '[appearance:textfield]',
               '[&::-webkit-outer-spin-button]:appearance-none',
               '[&::-webkit-inner-spin-button]:appearance-none',
             )}
           />
-          <p className="text-gray-700 text-xs">
+          <p className="text-muted-foreground/50 text-xs">
             Minimum 1.5× — e.g., 2.0 = volume is 2× above daily average
           </p>
         </div>
@@ -375,14 +383,14 @@ export function AlertBuilder({ watchlistItems = [], onCreated }: AlertBuilderPro
 
       {/* Error */}
       {formError && (
-        <p className="text-red-400 text-xs bg-red-500/5 border border-red-500/10 rounded-lg px-3 py-2.5">
+        <p className="text-destructive text-xs bg-destructive/5 border border-destructive/20 px-3 py-2.5">
           {formError}
         </p>
       )}
 
       {/* Success */}
       {success && (
-        <p className="text-emerald-400 text-xs bg-emerald-500/5 border border-emerald-500/10 rounded-lg px-3 py-2.5">
+        <p className="text-primary text-xs bg-primary/5 border border-primary/20 px-3 py-2.5">
           ✓ Alert created — you&apos;ll be notified when the condition triggers
         </p>
       )}
@@ -393,10 +401,10 @@ export function AlertBuilder({ watchlistItems = [], onCreated }: AlertBuilderPro
         disabled={!isValid || submitting || watchlistItems.length === 0}
         className={cn(
           'w-full flex items-center justify-center gap-2',
-          'py-2.5 px-4 rounded-lg text-sm font-semibold transition-all duration-150',
+          'py-2.5 px-4 text-sm font-semibold transition-all duration-150',
           isValid && !submitting && watchlistItems.length > 0
-            ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
-            : 'bg-gray-800 text-gray-600 cursor-not-allowed',
+            ? 'bg-primary hover:bg-primary/90 text-primary-foreground'
+            : 'bg-secondary text-muted-foreground/40 cursor-not-allowed',
         )}
       >
         {submitting ? (

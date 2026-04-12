@@ -37,31 +37,31 @@ function PriceHeader({
   const isNeutral = change === 0;
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-gray-800">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-border">
       <div>
         <div className="flex items-center gap-3 mb-1">
-          <h1 className="text-3xl font-bold text-white tracking-tight">
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">
             {symbol}
           </h1>
           {livePrice && (
-            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="flex items-center gap-1.5 px-2 py-0.5 bg-primary/10 border border-primary/20 text-primary text-xs font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
               LIVE
             </span>
           )}
         </div>
         <div className="flex items-baseline gap-3">
-          <span className="text-4xl font-bold text-white tabular-nums">
+          <span className="text-4xl font-bold text-foreground tabular-nums">
             ${price.toFixed(2)}
           </span>
           <span
             className={cn(
               'flex items-center gap-1 text-lg font-semibold tabular-nums',
               isNeutral
-                ? 'text-gray-500'
+                ? 'text-muted-foreground'
                 : isPositive
-                  ? 'text-emerald-400'
-                  : 'text-red-400',
+                  ? 'text-primary'
+                  : 'text-destructive',
             )}
           >
             {isNeutral ? (
@@ -81,14 +81,14 @@ function PriceHeader({
       {/* OHLC Quick Stats */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: 'Open', value: initialQuote.open.toFixed(2) },
-          { label: 'High', value: initialQuote.high.toFixed(2) },
-          { label: 'Low', value: initialQuote.low.toFixed(2) },
+          { label: 'Open',       value: initialQuote.open.toFixed(2) },
+          { label: 'High',       value: initialQuote.high.toFixed(2) },
+          { label: 'Low',        value: initialQuote.low.toFixed(2) },
           { label: 'Prev Close', value: initialQuote.previousClose.toFixed(2) },
         ].map(({ label, value }) => (
           <div key={label} className="text-center">
-            <p className="text-gray-600 text-xs mb-0.5">{label}</p>
-            <p className="text-white text-sm font-semibold tabular-nums">
+            <p className="text-muted-foreground/70 text-xs mb-0.5">{label}</p>
+            <p className="text-foreground text-sm font-semibold tabular-nums">
               ${value}
             </p>
           </div>
@@ -113,21 +113,21 @@ function TabBar({
   reportCount: number;
 }) {
   return (
-    <div className="flex gap-1 p-1 bg-gray-900 rounded-xl border border-gray-800">
+    <div className="flex gap-1 p-1 bg-card border border-border">
       {TABS.map((tab) => (
         <button
           key={tab}
           onClick={() => onChange(tab)}
           className={cn(
-            'flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150',
+            'flex-1 px-3 py-2 text-sm font-medium transition-all duration-150',
             active === tab
-              ? 'bg-gray-800 text-white shadow-sm'
-              : 'text-gray-500 hover:text-gray-300',
+              ? 'bg-secondary text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground/80',
           )}
         >
           {tab}
           {tab === 'AI Analysis' && reportCount > 0 && (
-            <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">
+            <span className="ml-1.5 px-1.5 py-0.5 bg-primary/20 text-primary text-[10px] font-bold">
               {reportCount}
             </span>
           )}
@@ -153,10 +153,10 @@ function TimeframeSelector({
           key={tf}
           onClick={() => onChange(tf)}
           className={cn(
-            'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150',
+            'px-3 py-1.5 text-xs font-semibold transition-all duration-150',
             value === tf
-              ? 'bg-gray-700 text-white'
-              : 'text-gray-500 hover:text-gray-300',
+              ? 'bg-muted text-foreground'
+              : 'text-muted-foreground hover:text-foreground/80',
           )}
         >
           {tf}
@@ -178,7 +178,6 @@ export function StockDetailClient({
   const [activeTab, setActiveTab] = useState<Tab>('Chart');
   const [timeframe, setTimeframe] = useState<Timeframe>('1M');
 
-  // Real-time WebSocket tick
   const { tick } = useStockFeed(symbol);
   const livePrice = tick?.price ?? null;
 
@@ -206,13 +205,13 @@ export function StockDetailClient({
   };
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-background">
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-6">
 
         {/* Back navigation */}
         <Link
           href="/watchlist"
-          className="inline-flex items-center gap-2 text-gray-500 hover:text-white text-sm mb-6 transition-colors"
+          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm mb-6 transition-colors"
         >
           <ArrowLeft size={15} />
           Back to Watchlist
@@ -238,7 +237,7 @@ export function StockDetailClient({
         {activeTab === 'Chart' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-white font-semibold">Price Chart</h2>
+              <h2 className="text-foreground font-semibold">Price Chart</h2>
               <TimeframeSelector value={timeframe} onChange={setTimeframe} />
             </div>
             <CandlestickChart
@@ -254,7 +253,7 @@ export function StockDetailClient({
         {activeTab === 'Indicators' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-white font-semibold">Technical Indicators</h2>
+              <h2 className="text-foreground font-semibold">Technical Indicators</h2>
               <TimeframeSelector value={timeframe} onChange={setTimeframe} />
             </div>
             <IndicatorPanel
@@ -269,24 +268,22 @@ export function StockDetailClient({
         {/* ── News Tab ──────────────────────────────────────────────────────── */}
         {activeTab === 'News' && (
           <div className="space-y-3">
-            <h2 className="text-white font-semibold">Recent News</h2>
+            <h2 className="text-foreground font-semibold">Recent News</h2>
             {newsLoading ? (
               <div className="space-y-3">
                 {[1, 2, 3, 4].map((i) => (
                   <div
                     key={i}
-                    className="h-24 bg-gray-900 border border-gray-800 rounded-xl animate-pulse"
+                    className="h-24 bg-card border border-border animate-pulse"
                   />
                 ))}
               </div>
             ) : news.length === 0 ? (
-              <div className="py-16 text-center text-gray-600">
+              <div className="py-16 text-center text-muted-foreground">
                 No recent news found for {symbol}
               </div>
             ) : (
-              news.map((item) => (
-                <NewsCard key={item.id} item={item} />
-              ))
+              news.map((item) => <NewsCard key={item.id} item={item} />)
             )}
           </div>
         )}
@@ -295,10 +292,10 @@ export function StockDetailClient({
         {activeTab === 'AI Analysis' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-white font-semibold">AI Analysis</h2>
+              <h2 className="text-foreground font-semibold">AI Analysis</h2>
               <button
                 onClick={() => void triggerAnalysis()}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 text-sm font-medium transition-all"
+                className="flex items-center gap-2 px-3 py-2 bg-primary/15 hover:bg-primary/25 text-primary text-sm font-medium transition-all"
               >
                 <Sparkles size={14} />
                 Analyze Now
@@ -309,19 +306,19 @@ export function StockDetailClient({
                 {[1, 2].map((i) => (
                   <div
                     key={i}
-                    className="h-64 bg-gray-900 border border-gray-800 rounded-2xl animate-pulse"
+                    className="h-64 bg-card border border-border animate-pulse"
                   />
                 ))}
               </div>
             ) : reports.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 bg-gray-900 border border-gray-800 rounded-2xl text-center">
-                <div className="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center mb-4">
-                  <Sparkles size={20} className="text-gray-600" />
+              <div className="flex flex-col items-center justify-center py-20 bg-card border border-border text-center">
+                <div className="w-12 h-12 bg-secondary flex items-center justify-center mb-4">
+                  <Sparkles size={20} className="text-muted-foreground" />
                 </div>
-                <h3 className="text-white font-semibold mb-1.5">
+                <h3 className="text-foreground font-semibold mb-1.5">
                   No reports for {symbol} yet
                 </h3>
-                <p className="text-gray-600 text-sm max-w-xs">
+                <p className="text-muted-foreground text-sm max-w-xs">
                   Click &ldquo;Analyze Now&rdquo; to generate an AI-powered
                   analysis using Gemini 2.0 Flash.
                 </p>
@@ -333,6 +330,7 @@ export function StockDetailClient({
             )}
           </div>
         )}
+
       </div>
     </div>
   );

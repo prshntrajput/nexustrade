@@ -68,48 +68,60 @@ export function AddSymbolForm({ existingSymbols, onAdd }: AddSymbolFormProps) {
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="flex flex-col sm:flex-row items-start gap-3 p-4 bg-gray-900 border border-gray-700 rounded-xl"
+      className="w-full flex flex-col gap-3 p-4 bg-card border border-border"
     >
-      <div className="w-full sm:w-36">
-        <Input
-          {...register('symbol')}
-          placeholder="e.g. AAPL"
-          className="uppercase"
-          autoFocus
-          autoComplete="off"
-          maxLength={10}
-          // exactOptionalPropertyTypes: only pass error when it exists
-          {...(errors.symbol?.message && { error: errors.symbol.message })}
-        />
+      {/* Inputs row — stacks on mobile, side-by-side on sm+ */}
+      <div className="flex flex-col sm:flex-row items-start gap-2 sm:gap-3 w-full">
+        {/* Symbol input — fixed narrow width on sm+ */}
+        <div className="w-full sm:w-32 flex-shrink-0">
+          <Input
+            {...register('symbol')}
+            placeholder="e.g. AAPL"
+            className="uppercase"
+            autoFocus
+            autoComplete="off"
+            maxLength={10}
+            {...(errors.symbol?.message && { error: errors.symbol.message })}
+          />
+        </div>
+
+        {/* Notes input — fills remaining space */}
+        <div className="flex-1 w-full">
+          <Input
+            {...register('notes')}
+            placeholder="Notes (optional)"
+            {...(errors.notes?.message && { error: errors.notes.message })}
+          />
+        </div>
       </div>
 
-      <div className="flex-1 w-full">
-        <Input
-          {...register('notes')}
-          placeholder="Notes (optional)"
-          {...(errors.notes?.message && { error: errors.notes.message })}
-        />
-      </div>
+      {/* Error + actions row */}
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        {/* Server error — fills space, wraps gracefully */}
+        {serverError && (
+          <p className="flex-1 text-destructive text-xs min-w-0 truncate">
+            {serverError}
+          </p>
+        )}
 
-      {serverError && (
-        <p className="text-red-400 text-xs self-center whitespace-nowrap">
-          {serverError}
-        </p>
-      )}
+        {/* Spacer when no error */}
+        {!serverError && <span className="flex-1" />}
 
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <Button type="submit" isLoading={isSubmitting}>
-          {!isSubmitting && 'Add'}
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={handleCancel}
-          aria-label="Cancel"
-        >
-          <X size={16} />
-        </Button>
+        {/* Actions — always pinned right */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Button type="submit" isLoading={isSubmitting}>
+            {!isSubmitting && 'Add'}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={handleCancel}
+            aria-label="Cancel"
+          >
+            <X size={16} />
+          </Button>
+        </div>
       </div>
     </form>
   );
