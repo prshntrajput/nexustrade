@@ -39,7 +39,7 @@ function Field({
   icon: React.ElementType;
   type: string;
   placeholder: string;
-  error?: string;
+  error?: string | undefined;  
   registration: ReturnType<ReturnType<typeof useForm<SignupForm>>['register']>;
 }) {
   return (

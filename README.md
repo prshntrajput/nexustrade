@@ -1,36 +1,119 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NexusTrade
 
-## Getting Started
+A full-stack AI stock research terminal built with Next.js, Supabase, and Gemini 2.0 Flash. Monitor live prices, manage a personal watchlist, configure price alerts, and generate on-demand AI-powered stock analysis reports.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Table of Contents
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- [Overview](#overview)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Getting Started](#getting-started)
+- [Environment Variables](#environment-variables)
+- [Database Setup](#database-setup)
+- [Running Locally](#running-locally)
+- [Deployment](#deployment)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Overview
 
-## Learn More
+NexusTrade is a personal stock research tool that combines real-time market data with AI analysis. The application pulls live price ticks from Finnhub via WebSocket, broadcasts them to connected clients through Supabase Realtime, and uses Google Gemini 2.0 Flash (orchestrated by Inngest) to produce structured analysis reports including sentiment, key risks, opportunities, and technical outlook.
 
-To learn more about Next.js, take a look at the following resources:
+The goal is a fast, responsive, keyboard-navigable interface that works well on both desktop and mobile without sacrificing data density.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Tech Stack
 
-## Deploy on Vercel
+**Frontend**
+- Next.js 15 (App Router, React Server Components)
+- TypeScript (strict mode, exactOptionalPropertyTypes)
+- Tailwind CSS v4
+- Lucide React (icons)
+- SWR (data fetching and client-side cache)
+- React Hook Form with Zod validation
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**Backend / Infrastructure**
+- Supabase — PostgreSQL database, authentication, and Realtime broadcast
+- Inngest — durable background job execution for AI analysis pipelines
+- Finnhub — WebSocket live price feed (50 symbol limit per connection)
+- Google Gemini 2.0 Flash — AI analysis generation
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Utilities**
+- date-fns (date formatting)
+- clsx / tailwind-merge via `cn()` utility
+
+
+---
+
+## Features
+
+**Watchlist**
+- Add and remove stock symbols (ticker validation via Zod schema)
+- Optional per-symbol notes
+- Server-side prefetch on page load — zero loading flash on first render
+- Live price tickers with flash animation on price change (green up, red down)
+- 50-symbol capacity warning at 45 symbols (Finnhub WebSocket limit)
+
+**Live Price Feed**
+- Finnhub WebSocket connection managed server-side
+- Price ticks broadcast to clients via Supabase Realtime channel
+- SWR fetches initial REST quote on mount (15s dedup interval matching gateway TTL)
+- Flash animation on tick: green for price increase, red for decrease, fades after 600ms
+- Connection status indicator (live / connecting)
+
+**AI Reports**
+- On-demand analysis triggered per symbol from the watchlist
+- Background processing via Inngest — non-blocking, durable
+- Reports streamed to the UI automatically via Supabase Realtime — no manual refresh required
+- Each report includes: sentiment (Bullish / Bearish / Neutral), summary, key risks, key opportunities, technical outlook, and technical indicators at time of analysis (RSI, MACD, Bollinger Bands)
+- Filterable by symbol, sentiment, and trigger type (manual, alert, scheduled)
+- Paginated list with load-more
+
+**Alerts**
+- Price alert configuration per symbol
+- Alerts trigger automatic AI analysis when conditions are met
+
+**News**
+- Per-symbol news feed with thumbnail, source, headline, summary, and relative timestamp
+
+**Authentication**
+- Email and password via Supabase Auth
+- Email confirmation flow on signup
+- Session refresh via Next.js middleware
+- Redirect to login on unauthenticated access
+
+**Navigation**
+- Sticky sidebar on desktop (220px)
+- Slide-in drawer on mobile with backdrop overlay
+- Hamburger button vertically centred in the header on mobile
+- Active route highlighted with primary accent border
+
+---
+
+**SETUP ENV**
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# Finnhub
+FINNHUB_API_KEY=your-finnhub-api-key
+
+# Google Gemini
+GEMINI_API_KEY=your-gemini-api-key
+
+# Inngest
+INNGEST_EVENT_KEY=your-inngest-event-key
+INNGEST_SIGNING_KEY=your-inngest-signing-key
+
+# App
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+
+
+
