@@ -17,6 +17,7 @@ import { CandlestickChart } from '@/components/charts/CandlestickChart';
 import { IndicatorPanel } from '@/components/charts/IndicatorPanel';
 import { NewsCard } from '@/components/stock/NewsCard';
 import { AIReportCard } from '@/components/stock/AIReportCard';
+import { StockChat } from '@/components/stock/StockChat';
 import type { Quote } from '@/types';
 
 // ─── Price Header ─────────────────────────────────────────────────────────────
@@ -100,7 +101,7 @@ function PriceHeader({
 
 // ─── Tab Bar ──────────────────────────────────────────────────────────────────
 
-const TABS = ['Chart', 'Indicators', 'News', 'AI Analysis'] as const;
+const TABS = ['Chart', 'Indicators', 'News', 'AI Analysis', 'Chat'] as const;
 type Tab = (typeof TABS)[number];
 
 function TabBar({
@@ -187,6 +188,7 @@ export function StockDetailClient({
     isFreeplan,
     rsiSeries,
     macdSeries,
+    bbSeries,
     news,
     newsLoading,
     reports,
@@ -242,6 +244,7 @@ export function StockDetailClient({
             </div>
             <CandlestickChart
               candles={candles}
+              bbSeries={bbSeries}
               isLoading={candlesLoading}
               isFreeplan={isFreeplan}
               symbol={symbol}
@@ -288,6 +291,9 @@ export function StockDetailClient({
           </div>
         )}
 
+        {/* ── Chat Tab ──────────────────────────────────────────────────────── */}
+        {activeTab === 'Chat' && <StockChat symbol={symbol} />}
+
         {/* ── AI Analysis Tab ───────────────────────────────────────────────── */}
         {activeTab === 'AI Analysis' && (
           <div className="space-y-4">
@@ -320,7 +326,7 @@ export function StockDetailClient({
                 </h3>
                 <p className="text-muted-foreground text-sm max-w-xs">
                   Click &ldquo;Analyze Now&rdquo; to generate an AI-powered
-                  analysis using Gemini 2.0 Flash.
+                  analysis.
                 </p>
               </div>
             ) : (

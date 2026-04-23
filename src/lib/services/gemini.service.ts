@@ -1,6 +1,11 @@
 import { GoogleGenAI } from '@google/genai';
 import type { Quote, NewsItem, Indicators } from '@/types';
 
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export interface GeminiAnalysis {
   summary: string;
   sentiment: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
@@ -140,6 +145,67 @@ export class GeminiService {
       keyOpportunities: parsed.keyOpportunities.slice(0, 5),
       technicalOutlook: parsed.technicalOutlook,
     };
+  }
+
+  // ─── chat ──────────────────────────────────────────────────────────────────
+  // Answers a freeform question about a stock using live quote + news as context.
+  // Message history is passed in full so the model can handle follow-up questions.
+
+  async chat(
+    symbol: string,
+    quote: Quote,
+    news: NewsItem[],
+    messages: ChatMessage[],
+  ): Promise<string> {
+    const newsLines =
+      news.length > 0
+        ? news
+            .slice(0, 5)
+            .map((n) => `• ${n.headline} (${n.source})`)
+            .join('\n')
+        : 'No recent news available.';
+
+    const systemInstruction = `You are a concise financial analyst assistant for NexusTrade. \
+The user is asking about ${symbol}.
+
+LIVE MARKET DATA:
+• Price: $${quote.price.toFixed(2)}  |  Change: ${quote.change >= 0 ? '+' : ''}${quote.change.toFixed(2)} (${quote.changePercent.toFixed(2)}%)
+• Day High: $${quote.high.toFixed(2)}  |  Day Low: $${quote.low.toFixed(2)}  |  Prev Close: $${quote.previousClose.toFixed(2)}
+
+RECENT NEWS:
+${newsLines}
+
+Rules:
+- Answer concisely in 2–4 sentences unless the question needs more detail.
+- Base your answer on the data above plus your general knowledge of the company.
+- Do not give explicit buy/sell recommendations.
+- If asked something unrelated to ${symbol} or finance, politely redirect.`;
+
+    // Map to @google/genai Content format — 'assistant' maps to 'model'
+    const contents = messages.map((m) => ({
+      role: m.role === 'assistant' ? ('model' as const) : ('user' as const),
+      parts: [{ text: m.content }],
+    }));
+
+    let rawText: string;
+    try {
+      const response = await this.ai.models.generateContent({
+        model: this.modelName,
+        contents,
+        config: {
+          systemInstruction,
+          temperature: 0.4,
+          maxOutputTokens: 1024,
+        },
+      });
+      rawText = response.text ?? '';
+    } catch (err) {
+      throw new Error(
+        `Gemini chat failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+
+    return rawText.trim() || 'Sorry, I could not generate a response.';
   }
 }
 

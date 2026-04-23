@@ -11,17 +11,21 @@ import {
   LogOut,
   Menu,
   X,
+  BarChart2,
 } from 'lucide-react';
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
-const NAV_ITEMS = [
-  { href: '/watchlist', label: 'Watchlist',  icon: LayoutDashboard },
-  { href: '/alerts',   label: 'Alerts',      icon: Bell },
-  { href: '/reports',  label: 'AI Reports',  icon: FileText },
-] as const;
+// Cast hrefs to Route — typed routes are re-generated on each `next build`.
+// New routes require a build before their type is available in the union.
+const NAV_ITEMS: Array<{ href: Route; label: string; icon: React.ElementType }> = [
+  { href: '/watchlist' as Route, label: 'Watchlist',  icon: LayoutDashboard },
+  { href: '/portfolio' as Route, label: 'Portfolio',  icon: BarChart2 },
+  { href: '/alerts'    as Route, label: 'Alerts',     icon: Bell },
+  { href: '/reports'   as Route, label: 'AI Reports', icon: FileText },
+];
 
 function NavItem({
   href,

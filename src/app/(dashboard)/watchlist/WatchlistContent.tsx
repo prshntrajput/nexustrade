@@ -70,7 +70,7 @@ export default function WatchlistContent() {
         </h2>
         <p className="text-muted-foreground text-sm max-w-xs sm:max-w-sm mb-6 sm:mb-8 leading-relaxed">
           Add stock symbols to monitor live prices, set alerts, and get
-          AI-powered analysis from Gemini 2.0 Flash.
+          AI-powered analysis.
         </p>
         {/* Form takes full width on mobile */}
         <div className="w-full max-w-sm">

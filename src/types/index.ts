@@ -23,3 +23,9 @@ export type {
 } from '@/lib/schemas/watchlist.schema';
 
 export type { Report, AnalyzeRequest } from '@/lib/schemas/report.schema';
+
+export type {
+  Holding,
+  CreateHolding,
+  UpdateHolding,
+} from '@/lib/schemas/portfolio.schema';

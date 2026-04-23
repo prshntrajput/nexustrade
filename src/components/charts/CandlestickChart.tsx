@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ComposedChart,
   Bar,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -13,7 +14,9 @@ import {
 } from 'recharts';
 import { format } from 'date-fns';
 import { Lock } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { Candle } from '@/types';
+import type { BBPoint } from '@/lib/indicators.chart';
 
 // ─── Custom Candlestick Shape ─────────────────────────────────────────────────
 
@@ -50,7 +53,6 @@ function CandlestickShape(props: ShapeProps) {
 
   return (
     <g>
-      {/* Wick: high to low */}
       <line
         x1={centerX}
         y1={highPx}
@@ -59,7 +61,6 @@ function CandlestickShape(props: ShapeProps) {
         stroke={color}
         strokeWidth={1.5}
       />
-      {/* Body: open to close */}
       <rect
         x={x + 1}
         y={bodyTop}
@@ -86,7 +87,12 @@ function CandleTooltip({
   payload?: any[];
 }) {
   if (!active || !payload?.[0]) return null;
-  const d = payload[0].payload as Candle & { time: number };
+  const d = payload[0].payload as Candle & {
+    time: number;
+    bbUpper: number | null;
+    bbMiddle: number | null;
+    bbLower: number | null;
+  };
   const isGreen = d.close >= d.open;
 
   return (
@@ -94,34 +100,56 @@ function CandleTooltip({
       <p className="text-gray-400 mb-2">
         {format(new Date(d.time), 'MMM d, yyyy')}
       </p>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1 mb-2">
         {[
           { label: 'Open', value: d.open },
           { label: 'Close', value: d.close },
           { label: 'High', value: d.high },
           { label: 'Low', value: d.low },
-          { label: 'Volume', value: null },
-        ]
-          .filter((r) => r.value !== null || r.label === 'Volume')
-          .map(({ label, value }) => (
+        ].map(({ label, value }) => (
+          <div key={label} className="flex justify-between gap-3">
+            <span className="text-gray-500">{label}</span>
+            <span
+              className={
+                label === 'Close'
+                  ? isGreen
+                    ? 'text-emerald-400 font-semibold'
+                    : 'text-red-400 font-semibold'
+                  : 'text-white'
+              }
+            >
+              ${(value as number).toFixed(2)}
+            </span>
+          </div>
+        ))}
+        <div className="flex justify-between gap-3 col-span-2">
+          <span className="text-gray-500">Volume</span>
+          <span className="text-white">
+            {(d.volume / 1_000_000).toFixed(2)}M
+          </span>
+        </div>
+      </div>
+
+      {/* BB values in tooltip when available */}
+      {d.bbUpper != null && (
+        <div className="border-t border-gray-800 pt-2 mt-1 space-y-1">
+          <p className="text-gray-600 text-[10px] uppercase tracking-wide mb-1">
+            Bollinger Bands
+          </p>
+          {[
+            { label: 'Upper', value: d.bbUpper },
+            { label: 'Mid', value: d.bbMiddle },
+            { label: 'Lower', value: d.bbLower },
+          ].map(({ label, value }) => (
             <div key={label} className="flex justify-between gap-3">
               <span className="text-gray-500">{label}</span>
-              <span
-                className={
-                  label === 'Close'
-                    ? isGreen
-                      ? 'text-emerald-400 font-semibold'
-                      : 'text-red-400 font-semibold'
-                    : 'text-white'
-                }
-              >
-                {label === 'Volume'
-                  ? `${(d.volume / 1_000_000).toFixed(2)}M`
-                  : `$${(value as number).toFixed(2)}`}
+              <span className="text-violet-400">
+                ${(value as number).toFixed(2)}
               </span>
             </div>
           ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -135,25 +163,15 @@ function FreePlanNotice({ symbol }: { symbol: string }) {
         <Lock size={22} className="text-gray-600" />
       </div>
       <h3 className="text-white font-semibold text-[15px] mb-2">
-        Historical data not available
+        No chart data available for {symbol}
       </h3>
-      <p className="text-gray-600 text-sm max-w-[280px] text-center leading-relaxed mb-4">
-        Candlestick charts for {symbol} require a Finnhub paid plan.
-        Upgrade at{' '}
-        <a
-          href="https://finnhub.io/pricing"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-emerald-500 underline"
-        >
-          finnhub.io/pricing
-        </a>
+      <p className="text-gray-600 text-sm max-w-[280px] text-center leading-relaxed">
+        Could not fetch historical data. Try a different symbol or check back
+        later.
       </p>
     </div>
   );
 }
-
-// ─── Loading Skeleton ─────────────────────────────────────────────────────────
 
 function ChartSkeleton() {
   return (
@@ -161,10 +179,42 @@ function ChartSkeleton() {
   );
 }
 
+// ─── BB Toggle Button ─────────────────────────────────────────────────────────
+
+function BBToggle({
+  enabled,
+  hasData,
+  onToggle,
+}: {
+  enabled: boolean;
+  hasData: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      onClick={onToggle}
+      disabled={!hasData}
+      title={
+        hasData ? 'Toggle Bollinger Bands' : 'Not enough data for Bollinger Bands (need 20+ candles)'
+      }
+      className={cn(
+        'px-2.5 py-1 text-[11px] font-semibold border transition-all duration-150',
+        'disabled:opacity-30 disabled:cursor-not-allowed',
+        enabled
+          ? 'bg-violet-500/20 border-violet-500/40 text-violet-300'
+          : 'bg-gray-800 border-gray-700 text-gray-500 hover:text-gray-300',
+      )}
+    >
+      BB
+    </button>
+  );
+}
+
 // ─── Main Chart ───────────────────────────────────────────────────────────────
 
 interface CandlestickChartProps {
   candles: Candle[];
+  bbSeries: BBPoint[];
   isLoading: boolean;
   isFreeplan: boolean;
   symbol: string;
@@ -172,28 +222,43 @@ interface CandlestickChartProps {
 
 export function CandlestickChart({
   candles,
+  bbSeries,
   isLoading,
   isFreeplan,
   symbol,
 }: CandlestickChartProps) {
+  const [showBB, setShowBB] = useState(true);
+  const hasBBData = bbSeries.some((p) => p.upper !== null);
+
+  // Merge BB values into chart data — same index as candles array
   const chartData = useMemo(
     () =>
-      candles.map((c) => ({
+      candles.map((c, i) => ({
         ...c,
-        // Bar uses `high` as dataKey so the Y-axis domain covers all wicks
         barValue: c.high,
+        bbUpper: bbSeries[i]?.upper ?? null,
+        bbMiddle: bbSeries[i]?.middle ?? null,
+        bbLower: bbSeries[i]?.lower ?? null,
       })),
-    [candles],
+    [candles, bbSeries],
   );
 
-  const priceMin = useMemo(
-    () => Math.min(...candles.map((c) => c.low)) * 0.995,
-    [candles],
-  );
-  const priceMax = useMemo(
-    () => Math.max(...candles.map((c) => c.high)) * 1.005,
-    [candles],
-  );
+  const priceMin = useMemo(() => {
+    const lows = candles.map((c) => c.low);
+    const bbLowers = showBB
+      ? bbSeries.filter((p) => p.lower !== null).map((p) => p.lower!)
+      : [];
+    return Math.min(...lows, ...bbLowers) * 0.995;
+  }, [candles, bbSeries, showBB]);
+
+  const priceMax = useMemo(() => {
+    const highs = candles.map((c) => c.high);
+    const bbUppers = showBB
+      ? bbSeries.filter((p) => p.upper !== null).map((p) => p.upper!)
+      : [];
+    return Math.max(...highs, ...bbUppers) * 1.005;
+  }, [candles, bbSeries, showBB]);
+
   const volumeMax = useMemo(
     () => Math.max(...candles.map((c) => c.volume)) * 4,
     [candles],
@@ -206,6 +271,36 @@ export function CandlestickChart({
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4">
+      {/* BB legend */}
+      {showBB && hasBBData && (
+        <div className="flex gap-3 mb-3 text-[10px]">
+          <span className="flex items-center gap-1.5 text-violet-400">
+            <span className="w-4 h-0.5 bg-violet-400 inline-block" /> BB Upper
+          </span>
+          <span className="flex items-center gap-1.5 text-violet-300">
+            <span className="w-4 h-0.5 bg-violet-300 inline-block border-dashed" /> SMA 20
+          </span>
+          <span className="flex items-center gap-1.5 text-violet-400">
+            <span className="w-4 h-0.5 bg-violet-400 inline-block" /> BB Lower
+          </span>
+          <button
+            onClick={() => setShowBB(false)}
+            className="ml-auto text-gray-600 hover:text-gray-400 transition-colors"
+          >
+            Hide
+          </button>
+        </div>
+      )}
+      {!showBB && hasBBData && (
+        <div className="flex justify-end mb-3">
+          <BBToggle
+            enabled={false}
+            hasData={hasBBData}
+            onToggle={() => setShowBB(true)}
+          />
+        </div>
+      )}
+
       <ResponsiveContainer width="100%" height={420}>
         <ComposedChart
           data={chartData}
@@ -217,7 +312,6 @@ export function CandlestickChart({
             vertical={false}
           />
 
-          {/* X Axis — dates */}
           <XAxis
             dataKey="time"
             tickFormatter={(t: number) => format(new Date(t), 'MMM d')}
@@ -227,7 +321,6 @@ export function CandlestickChart({
             minTickGap={40}
           />
 
-          {/* Left Y Axis — price */}
           <YAxis
             yAxisId="price"
             domain={[priceMin, priceMax]}
@@ -239,7 +332,6 @@ export function CandlestickChart({
             orientation="left"
           />
 
-          {/* Right Y Axis — volume (smaller, back-layer) */}
           <YAxis
             yAxisId="volume"
             domain={[0, volumeMax]}
@@ -249,13 +341,14 @@ export function CandlestickChart({
 
           <Tooltip content={<CandleTooltip />} cursor={false} />
 
-          {/* Volume bars — rendered first (back layer) */}
+          {/* Volume bars — back layer */}
           <Bar
             yAxisId="volume"
             dataKey="volume"
             maxBarSize={6}
             opacity={0.3}
             radius={[1, 1, 0, 0]}
+            isAnimationActive={false}
           >
             {chartData.map((entry, index) => (
               <Cell
@@ -265,7 +358,49 @@ export function CandlestickChart({
             ))}
           </Bar>
 
-          {/* Candlestick bars — custom shape */}
+          {/* Bollinger Bands — rendered beneath candlesticks */}
+          {showBB && hasBBData && (
+            <>
+              <Line
+                yAxisId="price"
+                type="monotone"
+                dataKey="bbUpper"
+                stroke="#7c3aed"
+                strokeWidth={1}
+                strokeOpacity={0.7}
+                dot={false}
+                isAnimationActive={false}
+                connectNulls={false}
+                strokeDasharray="4 2"
+              />
+              <Line
+                yAxisId="price"
+                type="monotone"
+                dataKey="bbMiddle"
+                stroke="#a78bfa"
+                strokeWidth={1}
+                strokeOpacity={0.5}
+                dot={false}
+                isAnimationActive={false}
+                connectNulls={false}
+                strokeDasharray="6 3"
+              />
+              <Line
+                yAxisId="price"
+                type="monotone"
+                dataKey="bbLower"
+                stroke="#7c3aed"
+                strokeWidth={1}
+                strokeOpacity={0.7}
+                dot={false}
+                isAnimationActive={false}
+                connectNulls={false}
+                strokeDasharray="4 2"
+              />
+            </>
+          )}
+
+          {/* Candlestick bars — top layer */}
           <Bar
             yAxisId="price"
             dataKey="barValue"

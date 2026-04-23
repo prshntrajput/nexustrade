@@ -1,5 +1,39 @@
 import type { Candle } from '@/types';
 
+export interface BBPoint {
+  time: number;
+  upper: number | null;
+  middle: number | null;
+  lower: number | null;
+}
+
+// ─── Bollinger Bands Time Series (20, 2) ──────────────────────────────────────
+
+export function calcBBTimeSeries(
+  candles: Candle[],
+  period = 20,
+  multiplier = 2,
+): BBPoint[] {
+  return candles.map((c, i) => {
+    if (i < period - 1) {
+      return { time: c.time, upper: null, middle: null, lower: null };
+    }
+
+    const slice = candles.slice(i - period + 1, i + 1).map((x) => x.close);
+    const sma = slice.reduce((sum, v) => sum + v, 0) / period;
+    const variance =
+      slice.reduce((sum, v) => sum + (v - sma) ** 2, 0) / period;
+    const stdDev = Math.sqrt(variance);
+
+    return {
+      time: c.time,
+      upper: parseFloat((sma + multiplier * stdDev).toFixed(4)),
+      middle: parseFloat(sma.toFixed(4)),
+      lower: parseFloat((sma - multiplier * stdDev).toFixed(4)),
+    };
+  });
+}
+
 export interface RSIPoint {
   time: number;
   rsi: number | null;

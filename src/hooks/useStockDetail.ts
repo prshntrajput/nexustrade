@@ -6,6 +6,7 @@ import type { Quote, CandleResponse, NewsItem, Report } from '@/types';
 import {
   calcRSITimeSeries,
   calcMACDTimeSeries,
+  calcBBTimeSeries,
 } from '@/lib/indicators.chart';
 
 // ─── Fetcher ──────────────────────────────────────────────────────────────────
@@ -109,6 +110,13 @@ export function useStockDetail(symbol: string, timeframe: Timeframe = '1M') {
     [candles.length, symbol],
   );
 
+  // Bollinger Bands need 20 candles minimum for the first valid point
+  const bbSeries = useMemo(
+    () => (candles.length >= 20 ? calcBBTimeSeries(candles) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [candles.length, symbol],
+  );
+
   return {
     // Quote
     quote: quote ?? null,
@@ -122,6 +130,7 @@ export function useStockDetail(symbol: string, timeframe: Timeframe = '1M') {
     // Indicators (time-series for charts)
     rsiSeries,
     macdSeries,
+    bbSeries,
 
     // News
     news: newsData?.news ?? [],

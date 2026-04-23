@@ -228,7 +228,7 @@ export function ReportsView() {
               AI Reports
             </h1>
             <p className="text-muted-foreground text-sm mt-1 leading-snug">
-              Gemini-powered analysis — updates instantly when new reports arrive
+              AI-powered analysis — updates instantly when new reports arrive
             </p>
           </div>
           <button
