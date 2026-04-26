@@ -38,7 +38,7 @@ export default function LoginPage() {
       setServerError(error.message);
       return;
     }
-    router.push('/watchlist');
+    router.push('/market' as never);
     router.refresh();
   };
 

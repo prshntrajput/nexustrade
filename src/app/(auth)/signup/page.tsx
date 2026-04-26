@@ -140,7 +140,7 @@ export default function SignupPage() {
     const { error } = await supabase.auth.signUp({
       email:    data.email,
       password: data.password,
-      options:  { emailRedirectTo: `${window.location.origin}/watchlist` },
+      options:  { emailRedirectTo: `${window.location.origin}/market` },
     });
     if (error) {
       setServerError(error.message);
