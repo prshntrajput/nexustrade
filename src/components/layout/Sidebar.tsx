@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   BarChart2,
+  Activity,
 } from 'lucide-react';
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -21,10 +22,11 @@ import { cn } from '@/lib/utils';
 // Cast hrefs to Route — typed routes are re-generated on each `next build`.
 // New routes require a build before their type is available in the union.
 const NAV_ITEMS: Array<{ href: Route; label: string; icon: React.ElementType }> = [
-  { href: '/watchlist' as Route, label: 'Watchlist',  icon: LayoutDashboard },
-  { href: '/portfolio' as Route, label: 'Portfolio',  icon: BarChart2 },
-  { href: '/alerts'    as Route, label: 'Alerts',     icon: Bell },
-  { href: '/reports'   as Route, label: 'AI Reports', icon: FileText },
+  { href: '/market'    as Route, label: 'Market Pulse', icon: Activity },
+  { href: '/watchlist' as Route, label: 'Watchlist',    icon: LayoutDashboard },
+  { href: '/portfolio' as Route, label: 'Portfolio',    icon: BarChart2 },
+  { href: '/alerts'    as Route, label: 'Alerts',       icon: Bell },
+  { href: '/reports'   as Route, label: 'AI Reports',   icon: FileText },
 ];
 
 function NavItem({
