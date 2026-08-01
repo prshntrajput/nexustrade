@@ -7,6 +7,7 @@ import {
 } from '@/lib/middleware/utils';
 import { getReportRepository } from '@/lib/repositories/report.repository';
 import { DatabaseError, NotFoundError } from '@/lib/errors';
+import { demoReports } from '@/lib/demo';
 
 // ─── GET /api/gateway/reports/[id] ───────────────────────────────────────────
 
@@ -21,6 +22,12 @@ export async function GET(
     withRateLimit({ service: 'database', rpm: 120 }),
     async (_req: NextRequest, ctx: RequestContext): Promise<Response> => {
       try {
+        if (ctx.isDemo) {
+          const report = demoReports.find((item) => item.id === id);
+          if (!report) return createErrorResponse('Report not found', 404);
+          return createSuccessResponse(report);
+        }
+
         const repo = getReportRepository();
         const report = await repo.findById(id, ctx.user!.id);
 

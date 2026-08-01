@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { DEMO_MODE_COOKIE, isDemoModeCookie } from '@/lib/demo';
 
 // ← Inline — no imports from @/lib/supabase/middleware
 export async function proxy(request: NextRequest) {
@@ -32,23 +33,26 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
+  const isDemo = isDemoModeCookie(request.cookies.get(DEMO_MODE_COOKIE)?.value);
 
   const isAuthRoute = path.startsWith('/login') || path.startsWith('/signup');
   const isDashboardRoute =
+    path.startsWith('/market') ||
     path.startsWith('/watchlist') ||
+    path.startsWith('/portfolio') ||
     path.startsWith('/alerts') ||
     path.startsWith('/reports') ||
     path.startsWith('/stock');
 
-  if (!user && isDashboardRoute) {
+  if (!user && !isDemo && isDashboardRoute) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
   }
 
-  if (user && isAuthRoute) {
+  if ((user || isDemo) && isAuthRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = '/watchlist';
+    url.pathname = '/market';
     return NextResponse.redirect(url);
   }
 

@@ -1,12 +1,12 @@
 import type { NextRequest } from 'next/server';
-import { z } from 'zod';
+import type { z } from 'zod';
 import { compose, withAuth, withRateLimit, withValidation } from '@/lib/middleware';
 import type { RequestContext } from '@/lib/middleware';
 import { createSuccessResponse, createErrorResponse } from '@/lib/middleware/utils';
 import { getWatchlistRepository } from '@/lib/repositories/watchlist.repository';
 import { CreateWatchlistItemSchema } from '@/lib/schemas/watchlist.schema';
 import { DatabaseError, ConflictError } from '@/lib/errors';
-import { ZodAny } from 'zod';
+import { demoWatchlist } from '@/lib/demo';
 
 // ─── GET /api/gateway/watchlist ───────────────────────────────────────────────
 
@@ -15,6 +15,8 @@ async function getWatchlistHandler(
   ctx: RequestContext,
 ): Promise<Response> {
   try {
+    if (ctx.isDemo) return createSuccessResponse(demoWatchlist);
+
     const repo = getWatchlistRepository();
     const items = await repo.findByUserId(ctx.user!.id);
     return createSuccessResponse(items);

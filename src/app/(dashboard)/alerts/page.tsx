@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { AlertsView } from '@/components/alerts/AlertsView';
+import { DEMO_MODE_COOKIE, isDemoModeCookie } from '@/lib/demo';
 
 export const metadata = {
   title: 'Alerts — NexusTrade',
@@ -9,6 +10,7 @@ export const metadata = {
 
 export default async function AlertsPage() {
   const cookieStore = await cookies();
+  const isDemo = isDemoModeCookie(cookieStore.get(DEMO_MODE_COOKIE)?.value);
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,7 +37,7 @@ export default async function AlertsPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect('/login');
+  if (!user && !isDemo) redirect('/login');
 
   // Client component handles all data fetching via SWR
   return <AlertsView />;

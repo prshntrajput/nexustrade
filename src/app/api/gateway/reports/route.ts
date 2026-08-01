@@ -14,6 +14,7 @@ import {
 } from '@/lib/middleware/utils';
 import { getReportRepository } from '@/lib/repositories/report.repository';
 import type { ReportFilters } from '@/lib/repositories/report.repository';
+import { demoReports } from '@/lib/demo';
 
 // ─── GET ──────────────────────────────────────────────────────────────────────
 
@@ -42,6 +43,16 @@ async function getReportsHandler(
   if (trigger !== undefined) filters.trigger = trigger;
 
   try {
+    if (ctx.isDemo) {
+      const filtered = demoReports
+        .filter((report) => (symbol ? report.symbol === symbol : true))
+        .filter((report) => (sentiment ? report.sentiment === sentiment : true))
+        .filter((report) => (trigger ? report.trigger === trigger : true))
+        .slice(offset, offset + limit);
+
+      return createSuccessResponse(filtered);
+    }
+
     const reports = await getReportRepository().findByUserId(
       ctx.user!.id,
       filters,

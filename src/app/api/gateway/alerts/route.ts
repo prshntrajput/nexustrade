@@ -15,6 +15,7 @@ import { CreateAlertSchema } from '@/lib/schemas/alert.schema';
 import type { CreateAlert } from '@/types';
 import { DatabaseError, NotFoundError } from '@/lib/errors';
 import { AlertEvaluator } from '@/lib/alert.evaluator';
+import { demoAlerts } from '@/lib/demo';
 
 // ─── GET handler ──────────────────────────────────────────────────────────────
 
@@ -23,6 +24,8 @@ async function getAlertsHandler(
   ctx: RequestContext,
 ): Promise<Response> {
   try {
+    if (ctx.isDemo) return createSuccessResponse(demoAlerts);
+
     const repo = getAlertRepository();
     const alerts = await repo.findByUserId(ctx.user!.id);
     return createSuccessResponse(alerts);

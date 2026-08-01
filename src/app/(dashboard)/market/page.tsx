@@ -1,16 +1,20 @@
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { MarketPage } from '@/components/market/MarketPage';
+import { DEMO_MODE_COOKIE, isDemoModeCookie } from '@/lib/demo';
 
 export const metadata = { title: 'Market Pulse — NexusTrade' };
 
 export default async function MarketPulsePage() {
+  const cookieStore = await cookies();
+  const isDemo = isDemoModeCookie(cookieStore.get(DEMO_MODE_COOKIE)?.value);
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect('/login');
+  if (!user && !isDemo) redirect('/login');
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">

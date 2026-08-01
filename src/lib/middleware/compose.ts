@@ -1,5 +1,7 @@
 import type { NextRequest } from 'next/server';
 import type { Middleware, RouteHandler } from './types';
+import { DEMO_MODE_COOKIE, isDemoModeCookie } from '@/lib/demo';
+import { createErrorResponse } from './utils';
 
 /**
  * Composes middlewares + a final handler into a single Next.js route function.
@@ -23,5 +25,16 @@ export function compose(
   );
 
   // Strip context param — Next.js route handlers only receive (request)
-  return (request: NextRequest) => composed(request, {});
+  return (request: NextRequest) => {
+    const isDemo = isDemoModeCookie(request.cookies.get(DEMO_MODE_COOKIE)?.value);
+    const isReadOnlyMethod = request.method === 'GET' || request.method === 'HEAD';
+
+    if (isDemo && !isReadOnlyMethod) {
+      return Promise.resolve(
+        createErrorResponse('Demo mode is read-only. Sign in to make changes.', 403),
+      );
+    }
+
+    return composed(request, {});
+  };
 }

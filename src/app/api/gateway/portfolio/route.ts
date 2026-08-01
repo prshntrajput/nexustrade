@@ -14,6 +14,7 @@ import {
   createErrorResponse,
 } from '@/lib/middleware/utils';
 import { DatabaseError } from '@/lib/errors';
+import { demoHoldings } from '@/lib/demo';
 
 // ─── GET /api/gateway/portfolio ───────────────────────────────────────────────
 
@@ -22,6 +23,8 @@ async function listHandler(
   ctx: RequestContext,
 ): Promise<Response> {
   try {
+    if (ctx.isDemo) return createSuccessResponse(demoHoldings);
+
     const holdings = await getPortfolioRepository().findByUserId(ctx.user!.id);
     return createSuccessResponse(holdings);
   } catch (err) {

@@ -3,6 +3,7 @@ import type { User } from '@supabase/supabase-js';
 
 export interface RequestContext {
   user?: User;
+  isDemo?: boolean;
   validatedData?: unknown;
 }
 

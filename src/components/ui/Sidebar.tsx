@@ -23,6 +23,7 @@ export default function Sidebar({ userEmail }: SidebarProps) {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
+    await fetch('/api/demo-session', { method: 'DELETE' });
     router.push('/login');
     router.refresh();
   };

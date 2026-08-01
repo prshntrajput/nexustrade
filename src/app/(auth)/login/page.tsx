@@ -21,6 +21,7 @@ export default function LoginPage() {
   const router    = useRouter();
   const supabase  = createClient();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [isDemoLoading, setIsDemoLoading] = useState(false);
 
   const {
     register,
@@ -30,6 +31,7 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginForm) => {
     setServerError(null);
+    await fetch('/api/demo-session', { method: 'DELETE' });
     const { error } = await supabase.auth.signInWithPassword({
       email: data.email,
       password: data.password,
@@ -38,6 +40,15 @@ export default function LoginPage() {
       setServerError(error.message);
       return;
     }
+    router.push('/market' as never);
+    router.refresh();
+  };
+
+  const handleDemoLogin = async () => {
+    setServerError(null);
+    setIsDemoLoading(true);
+    await supabase.auth.signOut();
+    await fetch('/api/demo-session', { method: 'POST' });
     router.push('/market' as never);
     router.refresh();
   };
@@ -171,7 +182,7 @@ export default function LoginPage() {
             {/* Submit */}
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isDemoLoading}
               className={cn(
                 'w-full flex items-center justify-center gap-2',
                 'py-2.5 text-sm font-semibold transition-all duration-150',
@@ -201,8 +212,31 @@ export default function LoginPage() {
             <div className="h-px flex-1 bg-border" />
           </div>
 
+          {/* Demo login */}
+          <button
+            type="button"
+            onClick={() => void handleDemoLogin()}
+            disabled={isSubmitting || isDemoLoading}
+            className={cn(
+              'w-full flex items-center justify-center gap-2',
+              'py-2.5 text-sm font-semibold transition-all duration-150',
+              'bg-secondary border border-border text-foreground',
+              'hover:border-primary/40 hover:bg-muted',
+              'disabled:opacity-50 disabled:cursor-not-allowed',
+            )}
+          >
+            {isDemoLoading ? (
+              <>
+                <Loader2 size={15} className="animate-spin" />
+                Opening demo...
+              </>
+            ) : (
+              'View Demo'
+            )}
+          </button>
+
           {/* Sign up link */}
-          <p className="text-center text-muted-foreground text-sm">
+          <p className="text-center text-muted-foreground text-sm mt-5">
             Don&apos;t have an account?{' '}
             <Link
               href="/signup"

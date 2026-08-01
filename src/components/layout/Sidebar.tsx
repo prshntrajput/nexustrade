@@ -67,6 +67,7 @@ export function Sidebar() {
   const handleSignOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
+    await fetch('/api/demo-session', { method: 'DELETE' });
     router.push('/login');
   };
 

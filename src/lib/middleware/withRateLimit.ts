@@ -18,6 +18,10 @@ export function withRateLimit(options: RateLimitOptions): Middleware {
       return createErrorResponse('Unauthorized', 401);
     }
 
+    if (ctx.isDemo) {
+      return handler(request, ctx);
+    }
+
     // Truncate to the current 1-minute window
     const now = new Date();
     const windowStart = new Date(Math.floor(now.getTime() / 60_000) * 60_000);

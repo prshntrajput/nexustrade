@@ -1,27 +1,39 @@
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { getWatchlistRepository } from '@/lib/repositories/watchlist.repository';
 import { SWRFallback } from '@/components/providers/SWRFallback';
 import WatchlistContent from './WatchlistContent';
 import { WATCHLIST_KEY } from '@/hooks/useWatchlist';
 import type { WatchlistItem } from '@/types';
+import {
+  DEMO_MODE_COOKIE,
+  demoWatchlist,
+  isDemoModeCookie,
+} from '@/lib/demo';
 
 export const metadata = { title: 'Watchlist — NexusTrade' };
 
 export default async function WatchlistPage() {
+  const cookieStore = await cookies();
+  const isDemo = isDemoModeCookie(cookieStore.get(DEMO_MODE_COOKIE)?.value);
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect('/login');
+  if (!user && !isDemo) redirect('/login');
 
   let initialWatchlist: WatchlistItem[] = [];
-  try {
-    const repo = getWatchlistRepository();
-    initialWatchlist = await repo.findByUserId(user.id);
-  } catch {
-    initialWatchlist = [];
+  if (isDemo) {
+    initialWatchlist = demoWatchlist;
+  } else if (user) {
+    try {
+      const repo = getWatchlistRepository();
+      initialWatchlist = await repo.findByUserId(user.id);
+    } catch {
+      initialWatchlist = [];
+    }
   }
 
   return (
